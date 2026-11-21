@@ -1,0 +1,185 @@
+<link rel="stylesheet" href="{{ css_url }}">
+{% if js_url %}<script src="{{ js_url }}" defer></script>{% endif %}
+<main class="gu">
+<header class="gu-brand"><span><b>GLPI</b> SecureUpdate</span><span class="gu-admin">Super-Admin</span></header>
+<h1>Atualizações do GLPI</h1>
+<nav class="gu-nav" aria-label="Atualizações do GLPI">{% for link in nav %}<a href="{{ link.url }}" {% if link.id == tab %}aria-current="page"{% endif %}>{{ link.label }}</a>{% endfor %}</nav>
+{% if msg %}<p class="gu-msg" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="gu-error alert alert-danger" role="alert">{{ error }}</p>{% endif %}
+{% if tab == 'atualizacao' %}
+<dl class="gu-strip" aria-label="Comparação de versões">
+    <div><dt>Versão instalada</dt><dd>{{ installed }}</dd></div>
+    <div><dt>Versão disponível</dt><dd>{% if available %}{{ target }}{% else %}—{% endif %}</dd></div>
+    <div><dt>Urgência</dt><dd>{% if available %}<span class="gu-badge" data-level="{{ urgency|lower }}">{{ urgency }}</span>{% else %}—{% endif %}</dd></div>
+</dl>
+{% if busy %}<p class="gu-msg" role="status">Operação em andamento · {{ phase }}. <a href="{{ panel_url }}">Atualizar estado</a></p>{% endif %}
+{% if available %}
+<div class="gu-workspace">
+    <section class="gu-card"><h2>Resumo da versão</h2>
+        <dl class="gu-summary">
+            <div><dt>Ramo</dt><dd>12.0</dd></div>
+            <div><dt>Pacote</dt><dd>glpi-{{ target }}.tgz</dd></div>
+            <div><dt>Origem</dt><dd>{% if prepared.source|default('') == 'upload' %}Arquivo enviado do computador{% elseif prepared.source|default('') == 'download' %}Baixado pelo servidor{% else %}Release oficial do GLPI{% endif %}</dd></div>
+        </dl>
+        <h2>Changelog</h2>
+        {% for note in notes %}
+        <details class="gu-note" {% if loop.first %}open{% endif %}><summary>GLPI {{ note.version }}</summary>
+            <div class="gu-notes">{{ note.body }}</div><a href="{{ note.url }}" rel="noopener noreferrer">Abrir notas oficiais ↗</a>
+        </details>{% endfor %}
+    </section>
+    <aside class="gu-card gu-package"><h2>Preparar atualização</h2>
+        {% if can_prepare %}
+        <fieldset class="gu-picker"><legend>Origem do pacote</legend>
+            <div class="gu-segments">
+                <label><input type="radio" name="package_source" value="download" {% if selected_source != 'upload' %}checked{% endif %}><span>Baixar pelo servidor</span></label>
+                <label><input type="radio" name="package_source" value="upload" {% if selected_source == 'upload' %}checked{% endif %}><span>Enviar do computador</span></label>
+            </div>
+        </fieldset>
+        {% for source in ['download','upload'] %}
+        <div class="gu-source" data-source="{{ source }}">
+            {% if can_apply and prepared.source == source %}
+            <details class="gu-proof"><summary>SHA-256 verificado</summary>
+                <p>{{ prepared.size }} bytes</p><code>{{ prepared.sha }}</code>
+            </details>
+            <form class="gu-approval" method="post">
+                <input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="apply"><input type="hidden" name="ref" value="{{ prepared.id }}">
+                <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required><span>Autorizo a atualização e o rollback em caso de falha antes da reabertura.</span></label>
+                <button class="btn btn-primary" type="submit" disabled>Aprovar atualização</button>
+                <noscript><button class="btn" type="submit">Confirmar autorização e atualizar</button></noscript>
+            </form>
+            <details class="gu-note"><summary>Verificar outro pacote</summary>
+            {% endif %}
+            {% if source == 'upload' %}
+            <p><a href="{{ asset_url }}" rel="noopener noreferrer">Baixar o .tgz oficial do GLPI {{ target }}</a></p>
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="upload"><input type="hidden" name="ref" value="{{ ref }}">
+                <label>Arquivo compactado (.tgz)<input class="form-control" type="file" name="package" accept=".tgz,.tar.gz" required></label>
+                <button class="btn" type="submit">Enviar e verificar arquivo</button>
+            </form>
+            {% else %}
+            <p>O servidor compara o pacote com o SHA-256 da release oficial antes de liberar a aprovação.</p>
+            <form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="download"><input type="hidden" name="ref" value="{{ ref }}"><button class="btn" type="submit">Baixar e verificar pacote</button></form>
+            {% endif %}
+            {% if can_apply and prepared.source == source %}</details>{% endif %}
+        </div>
+        {% endfor %}
+        {% elseif busy %}<p>Aguarde a conclusão da operação para preparar outro pacote.</p>
+        {% else %}<p>Consulte as versões novamente para preparar o pacote.</p>{% endif %}
+    </aside>
+</div>
+{% elseif checked %}<p>O GLPI está atualizado no ramo 12.0.</p>{% elseif connected %}<p>Aguardando a primeira consulta de versões.</p>{% endif %}
+<div class="gu-check">{% if checked %}<small>Última consulta em {{ checked }}</small>{% endif %}
+{% if connected and not busy %}<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="check"><button class="btn">Consultar versões</button></form>{% endif %}</div>
+{% if restore and not busy %}<details class="gu-rollback"><summary>Rollback da última atualização</summary><p>Ponto de restauração de {{ backup_time }}. O serviço salva o estado atual antes de reverter. Chamados posteriores ao backup deixarão de aparecer na instalação restaurada.</p><form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="rollback"><input type="hidden" name="ref" value="{{ restore }}"><label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo voltar ao ponto indicado.</label><button class="btn">Aprovar rollback</button></form></details>{% endif %}
+{% elseif tab == 'backups' %}
+<section class="gu-backups">
+<h2>Backups do GLPI</h2>
+{% if connected and vault %}
+{% if backup_result %}<p role="status">{{ backup_result.message }} Trabalho <code>{{ backup_result.job }}</code>.</p>{% endif %}
+<p>Destino selecionado: <strong>{{ policy.destination }}</strong> · {% if backup_next %}Próximo backup: {{ backup_next }}{% else %}Agendamento desativado{% endif %}</p>
+{% if busy %}<p role="status">Operação em andamento · {{ phase }}. <a href="{{ panel_url }}?aba=backups">Atualizar estado</a></p>{% endif %}
+<div class="gu-workspace">
+<section class="gu-card"><h2>Destino e agendamento</h2>
+<form method="post" class="gu-bpolicy"><fieldset {% if busy %}disabled{% endif %}>
+<input type="hidden" name="op" value="bsave"><input type="hidden" name="approval_token" value="{{ token }}">
+<label>Salvar em <select class="form-select" name="destination">{% for d in vault.destinations %}<option value="{{ d.id }}" {% if d.id == policy.destination %}selected{% endif %}>{{ d.label }} · {{ d.type_label }}</option>{% endfor %}</select></label>
+<small>Os destinos locais, NAS e nuvem são cadastrados no servidor Linux.</small>
+<label class="gu-choice"><input class="form-check-input" name="enabled" type="checkbox" {% if policy.rule %}checked{% endif %}> Agendar backups com janela de manutenção</label>
+<div class="gu-bcalendar">
+<label>Frequência <select class="form-select" name="kind">{% for k in backup_kinds %}<option value="{{ k.id }}" {% if k.id == brule.kind|default('daily') %}selected{% endif %}>{{ k.label }}</option>{% endfor %}</select></label>
+<label class="gu-weekday">Dia da semana <select class="form-select" name="weekday">{% for dayname in weekdays %}<option value="{{ loop.index }}" {% if loop.index == brule.weekday|default(1) %}selected{% endif %}>{{ dayname }}</option>{% endfor %}</select></label>
+<label class="gu-monthday">Dia do mês <select class="form-select" name="day">{% for d in month_days %}<option value="{{ d }}" {% if d == brule.day|default(1) %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></label>
+<label>Horário <input class="form-control" type="time" name="at" value="{{ brule.at|default('02:00') }}"></label>
+<label>Fuso horário <select class="form-select" name="zone">{% for tz in zones %}<option {% if tz == backup_zone %}selected{% endif %}>{{ tz }}</option>{% endfor %}</select></label>
+</div>
+<h3>Retenção</h3>
+<label>Manter as cópias mais recentes <input class="form-control" type="number" name="keep" value="{{ policy.keep }}" min="1" max="1000" required></label>
+<label>Preservar também as cópias dos últimos dias <input class="form-control" name="days" type="number" min="0" max="3650" value="{{ policy.days }}" required></label>
+<label class="gu-choice"><input class="form-check-input" type="checkbox" name="auto" {% if policy.auto %}checked{% endif %}> Limpar cópias fora da retenção após um novo backup bem-sucedido neste destino</label>
+<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Confirmo o destino, a janela de manutenção e a política de exclusão selecionados.</label>
+<button class="btn btn-primary">Salvar política</button></fieldset></form>
+</section>
+<section class="gu-card"><h2>Operações</h2>
+{% if not busy %}
+<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="btest">
+<label>Testar destino <select class="form-select" name="ref">{% for d in vault.destinations %}<option value="{{ d.id }}" {% if policy.destination == d.id %}selected{% endif %}>{{ d.label }}</option>{% endfor %}</select></label>
+<button class="btn">Testar conexão</button></form>
+<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="backup">
+<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo entrar em manutenção para copiar o banco, a instalação e os dados externos.</label><button class="btn btn-primary">Criar backup agora</button></form>
+{% endif %}
+<h3>Prévia da limpeza</h3><p>{{ vault.count }} cópia(s) fora da política salva para {{ policy.destination }}.</p>
+{% if vault.count %}<ul>{% for key in vault.candidates %}<li><code>{{ key }}</code></li>{% endfor %}</ul>
+{% if not busy %}<form method="post"><input type="hidden" name="op" value="bprune"><input type="hidden" name="ref" value="{{ vault.digest }}"><input type="hidden" name="approval_token" value="{{ token }}">
+<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo excluir todas as {{ vault.count }} cópias da prévia.</label><button class="btn">Aplicar limpeza</button></form>{% endif %}{% endif %}
+</section></div>
+<h2>Catálogo de backups</h2>
+{% for b in backups %}<details class="gu-note"><summary>{{ b.date }} · {{ b.version }} · {{ b.size }} · {{ b.destination }}</summary>
+<p><code>{{ b.id }}</code> · {% if b.deleting %}Exclusão incompleta. Confirme a exclusão para tentar novamente.{% elseif b.pending %}Envio pendente. Cópia local preservada.{% else %}Cópia verificada{% endif %}</p>
+{% if not busy %}<div class="gu-actions">
+{% for action in backup_actions %}{% if not b.deleting and (action.id != 'bretry' or b.pending) %}<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="{{ action.id }}"><input type="hidden" name="ref" value="{{ b.id }}"><button class="btn">{{ action.label }}</button></form>{% endif %}{% endfor %}
+</div>
+<details><summary>Restaurar ou excluir</summary><p>Restaurar substitui os dados em uso pelos desta cópia e abre uma janela de manutenção. Excluir remove esta cópia do destino e do catálogo.</p>
+<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="ref" value="{{ b.id }}">
+<label>Digite o identificador completo <input class="form-control" name="typed" required autocomplete="off"></label>
+<button class="btn" type="submit" name="op" value="brestore" {% if b.deleting %}disabled{% endif %}>Restaurar esta cópia</button> <button class="btn" type="submit" name="op" value="bdelete">Excluir esta cópia</button>
+</form></details>{% endif %}</details>{% endfor %}
+{% if not vault.total %}<p>Ainda não há backups concluídos.</p>{% endif %}
+<nav class="gu-actions" aria-label="Páginas do catálogo">{% if offset %}<a href="{{ panel_url }}?aba=backups&amp;offset={{ prev_offset }}">Anterior</a>{% endif %}{% if next_offset < vault.total %}<a href="{{ panel_url }}?aba=backups&amp;offset={{ next_offset }}">Próxima página</a>{% endif %}</nav>
+{% endif %}</section>
+{% elseif tab == 'saude' %}
+<section class="gu-detail"><h2>Último healthcheck</h2>{% if health_rows %}<dl>{% for row in health_rows %}<div><dt>{{ row.name }}</dt><dd>{{ row.value }}</dd></div>{% endfor %}</dl>{% else %}<p>Ainda não há resultado de healthcheck disponível.</p>{% endif %}</section>
+{% elseif tab == 'notificacoes' and connected %}
+<section class="gu-detail"><h2>Notificações de atualização</h2>
+<form method="post" class="gu-schedule">
+    <input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="settings">
+    <fieldset><legend>Intervalo de consulta</legend>
+        <label class="gu-choice"><input class="form-check-input" type="radio" name="mode" value="simple" {% if not advanced %}checked{% endif %}> Simples</label>
+        <label class="gu-choice"><input class="form-check-input" type="radio" name="mode" value="advanced" {% if advanced %}checked{% endif %}> Avançado</label>
+    </fieldset>
+    <div class="gu-simple">
+        <label>Consultar a cada (horas)
+            <select class="form-select" name="hours">{% for h in hour_options %}<option value="{{ h }}" {% if hours == h %}selected{% endif %}>{{ h }}</option>{% endfor %}</select>
+        </label>
+    </div>
+    <div class="gu-calendar">
+        <label>Repetir
+            <select class="form-select" name="kind">
+                <option value="daily" {% if kind == 'daily' %}selected{% endif %}>Todos os dias</option>
+                <option value="weekly" {% if kind == 'weekly' %}selected{% endif %}>Toda semana</option>
+                <option value="first" {% if kind == 'first' %}selected{% endif %}>Primeiro dia de cada mês</option>
+                <option value="monthly" {% if kind == 'monthly' %}selected{% endif %}>Dia específico de cada mês</option>
+                <option value="last" {% if kind == 'last' %}selected{% endif %}>Último dia de cada mês</option>
+            </select>
+        </label>
+        <label class="gu-weekday">Dia da semana
+            <select class="form-select" name="weekday">{% for name in weekdays %}<option value="{{ loop.index }}" {% if weekday == loop.index %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+        </label>
+        <label class="gu-monthday">Dia do mês
+            <select class="form-select" name="day">{% for d in month_days %}<option value="{{ d }}" {% if day == d %}selected{% endif %}>{{ d }}</option>{% endfor %}</select>
+            <small>Meses sem o dia escolhido são pulados.</small>
+        </label>
+        <label>Horário <input class="form-control" type="time" name="at" value="{{ at }}"></label>
+        <label>Fuso horário <select class="form-select" name="zone">{% for tz in zones %}<option {% if zone == tz %}selected{% endif %}>{{ tz }}</option>{% endfor %}</select></label>
+    </div>
+    <fieldset><legend>Onde receber</legend>
+        <label class="gu-choice"><input class="form-check-input" type="checkbox" name="browser" {% if browser %}checked{% endif %}> Painel do GLPI</label>
+        <label class="gu-choice"><input class="form-check-input" type="checkbox" name="email" {% if email %}checked{% endif %}> E-mail dos Super-Admins ativos</label>
+    </fieldset>
+    {% if next_check %}<p class="gu-next">Próxima consulta agendada <strong>{{ next_check }}</strong> ({{ zone }})</p>{% endif %}
+    <fieldset><legend>E-mail sobre backups</legend>
+        <label>Enviar aos Super-Admins ativos
+            <select class="form-select" name="backup_email">
+                <option value="off" {% if backup_email == 'off' %}selected{% endif %}>Desativado</option>
+                <option value="issues" {% if backup_email == 'issues' %}selected{% endif %}>Somente erros e avisos</option>
+                <option value="all" {% if backup_email == 'all' %}selected{% endif %}>Todos os resultados, incluindo sucessos</option>
+            </select>
+        </label>
+        <small>Inclui backups manuais e agendados, operações do catálogo e cópias de segurança anteriores à atualização ou ao rollback. O e-mail é enviado após o resultado, independentemente do intervalo de consulta de versões.</small>
+        {% if backup_mail_pending %}<p role="status">{{ backup_mail_pending }} aviso(s) pendente(s).{% if backup_mail_failed %} Houve falha no envio. O executor tentará novamente.{% endif %}</p>{% endif %}
+    </fieldset>
+    <button class="btn btn-primary">Salvar preferências</button>
+</form></section>
+{% elseif tab == 'debug' %}
+<section class="gu-detail"><div class="gu-section-title"><h2>Diagnóstico do executor</h2>{% if debug_rows %}<a class="btn" href="{{ export_url }}" download>Exportar JSON</a>{% endif %}</div>{% if debug_rows %}<dl>{% for row in debug_rows %}<div><dt>{{ row.name }}</dt><dd>{{ row.value }}</dd></div>{% endfor %}</dl>{% else %}<p>Confira o serviço <code>glpi-secureupdate.service</code> no servidor.</p>{% endif %}</section>
+{% endif %}
+</main>

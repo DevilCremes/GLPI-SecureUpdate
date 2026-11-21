@@ -1,0 +1,104 @@
+.gu {
+    --line: var(--tblr-border-color, currentColor);
+    --surface: var(--tblr-bg-surface, Canvas);
+    --muted: var(--tblr-secondary-color, var(--tblr-body-color, CanvasText));
+    max-width: 1500px; margin: 0 auto; padding: 0 clamp(16px, 2vw, 32px) 36px;
+    color: var(--tblr-body-color, CanvasText); background: var(--surface);
+    font: 1rem/1.5 var(--tblr-font-sans-serif, Arial, sans-serif); overflow-wrap: anywhere;
+}
+.gu, .gu * { box-sizing: border-box; }
+.gu :where(h1,h2,p,dl,dd,fieldset,legend) { margin: 0; }
+.gu h1 { margin: 22px 0 9px; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.18; }
+.gu h2 { font-size: clamp(20px, 1.8vw, 27px); line-height: 1.25; }
+.gu-brand,.gu-section-title,.gu-check { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.gu-brand { min-height:60px; border-bottom:1px solid var(--line); font-size:1.3rem; }
+.gu-brand b { padding-inline-end:12px; margin-inline-end:8px; border-inline-end:1px solid var(--line); color:var(--tblr-primary, LinkText); font-style:italic; }
+.gu-admin { font-size:1rem; }
+.gu-nav { display:flex; gap:clamp(6px, 1.6vw, 23px); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.gu-nav a { padding:12px 8px; border-bottom:3px solid transparent; color:inherit; text-decoration:none; }
+.gu-nav a[aria-current] { border-color:var(--tblr-primary, currentColor); color:var(--tblr-link-color, LinkText); font-weight:650; }
+.gu .gu-strip, .gu-workspace { display:grid; margin:24px 0; gap:16px; }
+.gu .gu-strip { grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:18px 0; border:1px solid var(--line); border-radius:8px; }
+.gu-strip > div { padding:0 clamp(12px,2.4vw,36px); }
+.gu-strip > div + div { border-inline-start:1px solid var(--line); }
+.gu-strip dt { font-weight:normal; }
+.gu-strip dd { font-size:clamp(21px,2vw,31px); font-weight:700; font-variant-numeric:tabular-nums; }
+.gu-badge { display:inline-block; vertical-align:middle; padding:3px 10px; border-radius:6px; font-size:1rem; background:var(--tblr-bg-surface-secondary, Canvas); }
+.gu-badge[data-level="alta"], .gu-badge[data-level="média"] { background:color-mix(in srgb,var(--tblr-warning, Highlight) 38%,var(--surface)); }
+.gu-badge[data-level="crítica"] { background:color-mix(in srgb,var(--tblr-danger, Highlight) 30%,var(--surface)); }
+.gu-workspace { grid-template-columns:minmax(0,1.32fr) minmax(0,1fr); }
+.gu-card { padding:clamp(16px,1.8vw,28px); border:1px solid var(--line); border-radius:8px; min-width:0; }
+.gu-summary { margin:24px 0 !important; }
+.gu-summary > div,.gu-detail dl > div { display:grid; grid-template-columns:minmax(110px,30%) 1fr; gap:12px; border-top:1px solid var(--line); padding:10px 4px; }
+.gu-summary > div:last-child { border-bottom:1px solid var(--line); }
+.gu-note,.gu-rollback,.gu-approval { margin-top:16px; border-top:1px solid var(--line); }
+.gu summary { padding:10px 0; cursor:pointer; font-weight:600; }
+.gu-notes { margin:4px 0 12px; white-space:pre-wrap; }
+.gu fieldset { border:0; min-width:0; padding:0; margin:20px 0; }
+.gu legend { font-size:1rem; font-weight:600; padding:0; margin:0 0 10px; }
+.gu-segments { display:flex; }
+.gu-segments label { position:relative; flex:1; min-width:0; }
+.gu-segments input { position:absolute; width:1px; height:1px; clip-path:inset(50%); }
+.gu-segments span { height:100%; display:grid; place-items:center; text-align:center; padding:9px 6px; border:1px solid var(--line); cursor:pointer; }
+.gu-segments label:first-child span { border-radius:5px 0 0 5px; }
+.gu-segments label:last-child span { border-radius:0 5px 5px 0; }
+.gu-segments input:checked + span { color:var(--tblr-link-color,LinkText); border-color:currentColor; background:color-mix(in srgb,var(--tblr-primary, Highlight) 10%,var(--surface)); font-weight:600; }
+.gu-segments input:focus-visible + span,.gu :focus-visible { outline:3px solid var(--tblr-primary, Highlight); outline-offset:2px; }
+.gu-package:has([value=download]:checked) [data-source=upload],
+.gu-package:has([value=upload]:checked) [data-source=download] { display:none; }
+.gu-proof { padding:2px 12px; background:color-mix(in srgb,var(--tblr-success, Highlight) 14%,var(--surface)); border-radius:5px; }
+.gu-proof summary::before { content:"✓ "; font-weight:700; }
+.gu-proof code { display:block; padding-bottom:8px; }
+.gu-approval { padding-top:12px; }
+.gu .gu-choice { display:flex; gap:10px; align-items:baseline; padding:8px 0; }
+.gu-choice input { flex:none; }
+.gu-source p,.gu-detail p,.gu-rollback p { margin:12px 0; }
+.gu-source button, .gu-detail button { margin-top:12px; }
+.gu-approval button { width:100%; }
+.gu-approval button:disabled { opacity:.55; cursor:not-allowed; }
+.gu input[type=file] { max-width:100%; margin-top:6px; }
+.gu-check { justify-content:flex-end; flex-wrap:wrap; }
+.gu-check small { color:var(--muted); }
+.gu-detail { padding:26px 0; max-width:850px; }
+.gu-detail dl,.gu .gu-history { margin-top:24px; }
+.gu-msg,.gu-error { margin:12px 0; }
+@media(max-width:720px) {
+    .gu-workspace { grid-template-columns:1fr; }
+    .gu-strip dt { font-size:.8rem; }
+    .gu-nav a { padding:10px 4px; }
+    .gu-brand { min-height:52px; }
+}
+@media(max-width:450px) {
+    .gu .gu-strip { grid-template-columns:1fr; padding:0 12px; }
+    .gu-strip > div { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; }
+    .gu-strip > div + div { border-inline-start:0; border-top:1px solid var(--line); }
+}
+.gu-schedule {
+    max-width: 36rem;
+}
+.gu-calendar, .gu-simple {
+    display: grid;
+    gap: 0.8rem;
+}
+.gu-calendar > label, .gu-simple > label {
+    display: grid;
+    gap: 0.25rem;
+}
+.gu-schedule:has([name=mode][value=simple]:checked) .gu-calendar,
+.gu-schedule:has([name=mode][value=advanced]:checked) .gu-simple,
+.gu-calendar:not(:has([name=kind] option[value=weekly]:checked)) .gu-weekday,
+.gu-calendar:not(:has([name=kind] option[value=monthly]:checked)) .gu-monthday {
+    display: none;
+}
+.gu .gu-next {
+    margin: 0 0 1rem;
+}
+
+.gu-backups {padding:24px 0}
+.gu-backups h3 {margin:22px 0 8px}
+.gu-backups form {margin:12px 0}
+.gu-backups label:not(.gu-choice) {display:grid;gap:4px;margin:10px 0}
+.gu-actions {display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.gu-bpolicy:not(:has([name=enabled]:checked)) .gu-bcalendar,
+.gu-bcalendar:not(:has([name=kind] option[value=weekly]:checked)) .gu-weekday,
+.gu-bcalendar:not(:has([name=kind] option[value=monthly]:checked)) .gu-monthday {display:none!important}

@@ -1,0 +1,28 @@
+[Unit]
+Description=Atualizações aprovadas do GLPI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=@PYTHON@ -E -s /usr/local/lib/glpi-secureupdate/agent.py serve
+WorkingDirectory=/usr/local/lib/glpi-secureupdate
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ReadWritePaths=@RW@
+StateDirectory=glpi-secureupdate
+StateDirectoryMode=0700
+RuntimeDirectory=glpi-secureupdate
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
