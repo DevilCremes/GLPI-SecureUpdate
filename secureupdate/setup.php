@@ -10,6 +10,6 @@ function plugin_init_secureupdate(): void {
     }
 }
 function plugin_version_secureupdate(): array {
-    return ['name'=>'Atualizações do GLPI', 'version'=>'1.0.7', 'author'=>'SecureUpdate',
+    return ['name'=>'Atualizações do GLPI', 'version'=>'1.0.8', 'author'=>'SecureUpdate',
         'license'=>'GPL-3.0-or-later','requirements'=>['glpi'=>['min'=>'12.0.0','max'=>'12.1.0']]];
 }

@@ -10,17 +10,37 @@
 .gu :where(h1,h2,p,dl,dd,fieldset,legend) { margin: 0; }
 .gu h1 { margin: 22px 0 9px; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.18; }
 .gu h2 { font-size: clamp(20px, 1.8vw, 27px); line-height: 1.25; }
-.gu-brand,.gu-section-title,.gu-check { display:flex; align-items:center; justify-content:space-between; gap:14px; }
-.gu-brand { min-height:60px; border-bottom:1px solid var(--line); font-size:1.3rem; }
-.gu-brand b { padding-inline-end:12px; margin-inline-end:8px; border-inline-end:1px solid var(--line); color:var(--tblr-primary, LinkText); font-style:italic; }
-.gu-admin { font-size:1rem; }
-.gu-nav { display:flex; gap:clamp(6px, 1.6vw, 23px); border-bottom:1px solid var(--line); flex-wrap:wrap; }
-.gu-nav a { padding:12px 8px; border-bottom:3px solid transparent; color:inherit; text-decoration:none; }
-.gu-nav a[aria-current] { border-color:var(--tblr-primary, currentColor); color:var(--tblr-link-color, LinkText); font-weight:650; }
-.gu .gu-strip, .gu-workspace { display:grid; margin:24px 0; gap:16px; }
-.gu .gu-strip { grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:18px 0; border:1px solid var(--line); border-radius:8px; }
-.gu-strip > div { padding:0 clamp(12px,2.4vw,36px); }
-.gu-strip > div + div { border-inline-start:1px solid var(--line); }
+.gu {display:grid;grid-template-columns:minmax(9rem,12rem) minmax(0,1fr);padding:0;min-height:32rem;border:1px solid var(--line);border-radius:.55rem;overflow:clip}
+.gu-rail {background:var(--tblr-navbar-bg-surface,var(--tblr-primary,Highlight));color:var(--tblr-navbar-color,var(--tblr-primary-fg,HighlightText));padding:1.25rem .75rem;display:flex;flex-direction:column;gap:1.5rem}
+.gu-brand {display:grid;gap:.2rem;padding-inline:.55rem;font-size:1.05rem}
+.gu-brand b {font-style:italic;font-size:1.6rem;line-height:1}
+.gu-nav {display:grid;gap:.2rem}
+.gu-nav a {padding:.6rem .7rem;border-radius:.3rem;color:inherit;text-decoration:none}
+.gu-nav a:hover,.gu-nav a[aria-current] {background:color-mix(in srgb,currentColor 16%,transparent);color:inherit}
+.gu-nav a[aria-current] {font-weight:700;box-shadow:inset 3px 0 currentColor}
+.gu-admin {margin-top:auto;padding:.5rem;font-size:.875rem}
+.gu-main {min-width:0;padding:clamp(1rem,2.2vw,2.2rem);background:var(--tblr-body-bg,var(--surface))}
+.gu-path {color:var(--muted);font-size:.875rem}
+.gu h1 {margin:.25rem 0 1.2rem}
+.gu .gu-strip {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;padding:.8rem 0;margin:0 0 1.25rem;border-bottom:1px solid var(--line)}
+.gu-strip > div {padding:0 1rem}
+.gu-strip > div:first-child {padding-inline-start:0}
+.gu-strip > div + div {border-inline-start:1px solid var(--line)}
+.gu-ledger {border:1px solid var(--line);border-radius:.5rem;background:var(--surface);overflow:clip}
+.gu .gu-ledger-title {padding:.85rem 1rem;border-bottom:1px solid var(--line);font-size:1.05rem}
+.gu-indexed .gu-split {display:grid;grid-template-columns:minmax(10rem,28%) minmax(0,1fr)}
+.gu-index {padding:.4rem;background:var(--tblr-bg-surface-secondary,var(--surface));border-inline-end:1px solid var(--line)}
+.gu-index a {display:block;padding:.7rem .6rem;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.gu-index a[aria-current] {background:color-mix(in srgb,var(--tblr-primary,Highlight) 12%,var(--surface));color:var(--tblr-link-color,LinkText);font-weight:650}
+.gu-index a:hover {text-decoration:underline}
+.gu-inspector {min-width:0;padding:clamp(.9rem,1.6vw,1.6rem)}
+.gu-pane[hidden],.gu-index[hidden] {display:none}
+.gu-pane + .gu-pane:not([hidden]) {margin-top:1rem}
+.gu-indexed .gu-pane + .gu-pane:not([hidden]) {margin-top:0}
+.gu-pane h2 {font-size:1.25rem;margin-bottom:.8rem}
+.gu-pane p + p,.gu-pane p + .btn,.gu-pane p + form {margin-top:.75rem}
+.gu-check {display:flex;gap:.75rem;align-items:center}
+.gu-schedule > button {margin-top:1rem}
 .gu-strip dt { font-weight:normal; }
 .gu-strip dd { font-size:clamp(21px,2vw,31px); font-weight:700; font-variant-numeric:tabular-nums; }
 .gu-badge { display:inline-block; vertical-align:middle; padding:3px 10px; border-radius:6px; font-size:1rem; background:var(--tblr-bg-surface-secondary, Canvas); }
@@ -73,9 +93,7 @@
     .gu-strip > div { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; }
     .gu-strip > div + div { border-inline-start:0; border-top:1px solid var(--line); }
 }
-.gu-schedule {
-    max-width: 36rem;
-}
+.gu-pane :where(.gu-calendar,.gu-simple,.form-select,.form-control) {max-width:36rem}
 .gu-calendar, .gu-simple {
     display: grid;
     gap: 0.8rem;
@@ -94,7 +112,7 @@
     margin: 0 0 1rem;
 }
 
-.gu-backups {padding:24px 0}
+.gu-backups > p {margin:0 0 .85rem}
 .gu-backups h3 {margin:22px 0 8px}
 .gu-backups form {margin:12px 0}
 .gu-backups label:not(.gu-choice) {display:grid;gap:4px;margin:10px 0}
@@ -102,3 +120,14 @@
 .gu-bpolicy:not(:has([name=enabled]:checked)) .gu-bcalendar,
 .gu-bcalendar:not(:has([name=kind] option[value=weekly]:checked)) .gu-weekday,
 .gu-bcalendar:not(:has([name=kind] option[value=monthly]:checked)) .gu-monthday {display:none!important}
+
+@media(max-width:800px){
+ .gu {grid-template-columns:1fr;min-height:0}
+ .gu-rail {flex-direction:row;align-items:center;flex-wrap:wrap;gap:.5rem;padding:.65rem}
+ .gu-nav {display:flex;flex-wrap:wrap}
+ .gu-brand {display:none}
+ .gu-admin {margin:0 0 0 auto}
+ .gu-indexed .gu-split {display:block}
+ .gu-index {display:flex;flex-wrap:wrap;border-inline-end:0;border-bottom:1px solid var(--line)}
+ .gu-index a {border:0}
+}

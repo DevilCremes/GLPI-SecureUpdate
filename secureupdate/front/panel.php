@@ -83,7 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     finally { if (is_resource($upload)) { fclose($upload); } }
     $query = ($op ?? '') === 'settings' ? '?aba=notificacoes' : '';
     if (in_array($op ?? '', $backupOps ?? [], true)) { $query = '?aba=backups'; }
-    if (in_array($op ?? '', ['download','upload'], true)) { $query = '?origem='.$op; }
+    if (in_array($op ?? '', ['download','upload'], true)) { $query = '?origem='.$op.'#gu-pacote'; }
+    $section = ['bsave'=>'gu-politica','btest'=>'gu-operacoes','bprune'=>'gu-limpeza'];
+    if (is_string($op ?? null) && isset($section[$op])) { $query .= '#'.$section[$op]; }
     return new RedirectResponse(Panel::url().$query, 303);
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') { return new Response('', 405); }
@@ -124,12 +126,18 @@ if ($tab === 'notificacoes' && !empty($s['next'])) {
     $nextCheck = (new DateTimeImmutable('@'.(int)$s['next']))
         ->setTimezone(new DateTimeZone($zoneName))->format('d/m/Y H:i');
 }
+$pageTitles = ['atualizacao'=>'Atualizações do GLPI','saude'=>'Saúde da instalação','backups'=>'Backups do GLPI',
+               'notificacoes'=>'Notificações','debug'=>'Debug do executor'];
+$comparisonKeys = ['Regressões críticas','Cobertura perdida','Alertas existentes','Verificações ignoradas'];
 $nav = [];
 foreach ($tabs as $id=>$label) { $nav[] = ['id'=>$id,'label'=>$label,'url'=>Panel::url().'?aba='.$id]; }
 Html::header('Atualizações do GLPI', Panel::url(), 'config', 'plugins');
 \Glpi\Application\View\TemplateRenderer::getInstance()->display('@secureupdate/panel.html.twig', [
-    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$CFG_GLPI['root_doc'].'/plugins/secureupdate/css/panel.css',
-    'js_url'=>$CFG_GLPI['root_doc'].'/plugins/secureupdate/js/panel.js',
+    'page_title'=>$pageTitles[$tab],'comparison_keys'=>$comparisonKeys,
+    'has_comparison'=>(bool)array_intersect($comparisonKeys,array_keys($s['health'] ?? [])),
+    'job_keys'=>['Estado do trabalho','Identificador','Etapa da transação','Ponto de rollback'],
+    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$CFG_GLPI['root_doc'].'/plugins/secureupdate/css/panel.css?v=2',
+    'js_url'=>$CFG_GLPI['root_doc'].'/plugins/secureupdate/js/panel.js?v=2',
     'selected_source'=>$_GET['origem'] ?? ($prepared['source'] ?? 'download'),
     'installed'=>GLPI_VERSION,'phase'=>!empty($s['mail_busy']) ? 'enviando e-mail de backup' : (($s['step'] ?? '') ?: ($s['phase'] ?? '')),'error'=>$error ?: ($s['error'] ?? ''),'msg'=>$msg,
     'connected'=>(bool)$s,'available'=>!empty($plan['id']),'target'=>$plan['version'] ?? '',

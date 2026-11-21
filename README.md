@@ -13,6 +13,10 @@ O Health Check é instalado e atualizado separadamente a partir do [repositório
 
 O **SecureUpdate** compara esses resultados antes e depois da migração. Também consulta o estado nativo do GLPI, verifica o esquema do banco e testa o acesso HTTP após a reabertura. O gerenciamento do backup, da janela de manutenção e do rollback pertence ao SecureUpdate. Assim, na aba **Saúde**, a pontuação do diagnóstico é creditada ao Health Check de João Paulo S. Costa. A indicação de regressão decorre da comparação feita pelo SecureUpdate.
 
+## Interface
+
+A versão 1.0.8 adota o Console operacional nas cinco abas. Escolha uma aba no menu lateral e uma seção no índice para consultar seus detalhes. A aba Backups abre no catálogo. Em telas pequenas, os menus se reorganizam acima do conteúdo.
+
 ## Como funciona uma atualização
 
 1. **Revisão da versão.** O painel compara a instalação com as versões estáveis do mesmo ramo e reúne o changelog das versões intermediárias. Quando as notas oficiais indicam gravidade, o painel apresenta a urgência correspondente.
@@ -45,7 +49,7 @@ O guia do pacote detalha as dependências, as permissões do banco, a configura�
 
 ## Validação
 
-Na versão **1.0.7**, passaram **107 testes automatizados**. A suíte cobre aprovação, integridade dos arquivos, restauração, rollback, retenção e novas tentativas de envio de e-mail. Os testes usam arquivos locais e simulam serviços externos. A homologação de ponta a ponta com o GLPI, o banco, o destino remoto e o SMTP da instalação continua necessária.
+Na versão **1.0.8**, passaram **107 testes automatizados**. A suíte cobre aprovação, integridade dos arquivos, restauração, rollback, retenção e novas tentativas de envio de e-mail. Os testes usam arquivos locais e simulam serviços externos. A homologação de ponta a ponta com o GLPI, o banco, o destino remoto e o SMTP da instalação continua necessária.
 
 ## Licença
 

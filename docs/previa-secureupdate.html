@@ -1,5 +1,7 @@
-<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prévia · Atualizações do GLPI</title><style>.gu {
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SecureUpdate · Console operacional</title><style>
+:root{color-scheme:light dark;--tblr-primary:light-dark(#254982,#284578);--tblr-primary-fg:white;--tblr-body-bg:light-dark(#f3f5f8,#171e29);--tblr-bg-surface:light-dark(white,#232c3a);--tblr-bg-surface-secondary:light-dark(#f4f6f8,#1b2432);--tblr-border-color:light-dark(#ced5df,#495366);--tblr-body-color:light-dark(#202b40,#edf0f7);--tblr-secondary-color:light-dark(#53657c,#c1cad6);--tblr-link-color:light-dark(#234991,#a9c8ff);--tblr-success:seagreen;--tblr-warning:orange}
+body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 system-ui,sans-serif;margin:0;padding:clamp(12px,3vw,44px)}.demobar{max-width:1500px;margin:0 auto 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.btn,button,select,.form-control{font:inherit;color:inherit;border:1px solid var(--tblr-border-color);border-radius:5px;background:var(--tblr-bg-surface);padding:6px 10px}.btn{cursor:pointer;text-decoration:none;display:inline-block}.btn-primary{background:var(--tblr-primary);color:white}a{color:var(--tblr-link-color)}[hidden]{display:none!important}
+.gu {
     --line: var(--tblr-border-color, currentColor);
     --surface: var(--tblr-bg-surface, Canvas);
     --muted: var(--tblr-secondary-color, var(--tblr-body-color, CanvasText));
@@ -11,17 +13,37 @@
 .gu :where(h1,h2,p,dl,dd,fieldset,legend) { margin: 0; }
 .gu h1 { margin: 22px 0 9px; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.18; }
 .gu h2 { font-size: clamp(20px, 1.8vw, 27px); line-height: 1.25; }
-.gu-brand,.gu-section-title,.gu-check { display:flex; align-items:center; justify-content:space-between; gap:14px; }
-.gu-brand { min-height:60px; border-bottom:1px solid var(--line); font-size:1.3rem; }
-.gu-brand b { padding-inline-end:12px; margin-inline-end:8px; border-inline-end:1px solid var(--line); color:var(--tblr-primary, LinkText); font-style:italic; }
-.gu-admin { font-size:1rem; }
-.gu-nav { display:flex; gap:clamp(6px, 1.6vw, 23px); border-bottom:1px solid var(--line); flex-wrap:wrap; }
-.gu-nav a { padding:12px 8px; border-bottom:3px solid transparent; color:inherit; text-decoration:none; }
-.gu-nav a[aria-current] { border-color:var(--tblr-primary, currentColor); color:var(--tblr-link-color, LinkText); font-weight:650; }
-.gu .gu-strip, .gu-workspace { display:grid; margin:24px 0; gap:16px; }
-.gu .gu-strip { grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:18px 0; border:1px solid var(--line); border-radius:8px; }
-.gu-strip > div { padding:0 clamp(12px,2.4vw,36px); }
-.gu-strip > div + div { border-inline-start:1px solid var(--line); }
+.gu {display:grid;grid-template-columns:minmax(9rem,12rem) minmax(0,1fr);padding:0;min-height:32rem;border:1px solid var(--line);border-radius:.55rem;overflow:clip}
+.gu-rail {background:var(--tblr-navbar-bg-surface,var(--tblr-primary,Highlight));color:var(--tblr-navbar-color,var(--tblr-primary-fg,HighlightText));padding:1.25rem .75rem;display:flex;flex-direction:column;gap:1.5rem}
+.gu-brand {display:grid;gap:.2rem;padding-inline:.55rem;font-size:1.05rem}
+.gu-brand b {font-style:italic;font-size:1.6rem;line-height:1}
+.gu-nav {display:grid;gap:.2rem}
+.gu-nav a {padding:.6rem .7rem;border-radius:.3rem;color:inherit;text-decoration:none}
+.gu-nav a:hover,.gu-nav a[aria-current] {background:color-mix(in srgb,currentColor 16%,transparent);color:inherit}
+.gu-nav a[aria-current] {font-weight:700;box-shadow:inset 3px 0 currentColor}
+.gu-admin {margin-top:auto;padding:.5rem;font-size:.875rem}
+.gu-main {min-width:0;padding:clamp(1rem,2.2vw,2.2rem);background:var(--tblr-body-bg,var(--surface))}
+.gu-path {color:var(--muted);font-size:.875rem}
+.gu h1 {margin:.25rem 0 1.2rem}
+.gu .gu-strip {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;padding:.8rem 0;margin:0 0 1.25rem;border-bottom:1px solid var(--line)}
+.gu-strip > div {padding:0 1rem}
+.gu-strip > div:first-child {padding-inline-start:0}
+.gu-strip > div + div {border-inline-start:1px solid var(--line)}
+.gu-ledger {border:1px solid var(--line);border-radius:.5rem;background:var(--surface);overflow:clip}
+.gu .gu-ledger-title {padding:.85rem 1rem;border-bottom:1px solid var(--line);font-size:1.05rem}
+.gu-indexed .gu-split {display:grid;grid-template-columns:minmax(10rem,28%) minmax(0,1fr)}
+.gu-index {padding:.4rem;background:var(--tblr-bg-surface-secondary,var(--surface));border-inline-end:1px solid var(--line)}
+.gu-index a {display:block;padding:.7rem .6rem;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.gu-index a[aria-current] {background:color-mix(in srgb,var(--tblr-primary,Highlight) 12%,var(--surface));color:var(--tblr-link-color,LinkText);font-weight:650}
+.gu-index a:hover {text-decoration:underline}
+.gu-inspector {min-width:0;padding:clamp(.9rem,1.6vw,1.6rem)}
+.gu-pane[hidden],.gu-index[hidden] {display:none}
+.gu-pane + .gu-pane:not([hidden]) {margin-top:1rem}
+.gu-indexed .gu-pane + .gu-pane:not([hidden]) {margin-top:0}
+.gu-pane h2 {font-size:1.25rem;margin-bottom:.8rem}
+.gu-pane p + p,.gu-pane p + .btn,.gu-pane p + form {margin-top:.75rem}
+.gu-check {display:flex;gap:.75rem;align-items:center}
+.gu-schedule > button {margin-top:1rem}
 .gu-strip dt { font-weight:normal; }
 .gu-strip dd { font-size:clamp(21px,2vw,31px); font-weight:700; font-variant-numeric:tabular-nums; }
 .gu-badge { display:inline-block; vertical-align:middle; padding:3px 10px; border-radius:6px; font-size:1rem; background:var(--tblr-bg-surface-secondary, Canvas); }
@@ -74,9 +96,7 @@
     .gu-strip > div { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; }
     .gu-strip > div + div { border-inline-start:0; border-top:1px solid var(--line); }
 }
-.gu-schedule {
-    max-width: 36rem;
-}
+.gu-pane :where(.gu-calendar,.gu-simple,.form-select,.form-control) {max-width:36rem}
 .gu-calendar, .gu-simple {
     display: grid;
     gap: 0.8rem;
@@ -95,34 +115,7 @@
     margin: 0 0 1rem;
 }
 
-:root {
- color-scheme:light;
- --tblr-body-bg:#edf1f6; --tblr-body-color:#202936; --tblr-secondary-color:#48596d;
- --tblr-bg-surface:#ffffff; --tblr-bg-surface-secondary:#f1f4f8; --tblr-border-color:#a6b2bf;
- --tblr-primary:#305890; --tblr-link-color:#2e5390; --demo-on-primary:#ffffff; --tblr-warning:#e4a400; --tblr-success:#258743;
-}
-:root[data-glpi-theme-dark="1"] {
- color-scheme:dark;
- --tblr-body-bg:#171a1f; --tblr-body-color:#e4e9ef; --tblr-secondary-color:#b3bdc9;
- --tblr-bg-surface:#20252c; --tblr-bg-surface-secondary:#2b313a; --tblr-border-color:#586575;
- --tblr-primary:#a5c7ff; --tblr-link-color:#aecaff; --demo-on-primary:#172a46; --tblr-warning:#ffc46e; --tblr-success:#68b983;
-}
-body {margin:0;background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.5 Arial,sans-serif}
-a {color:var(--tblr-link-color)}
-.btn, .form-select, .form-control, .demohead select {border:1px solid var(--tblr-border-color);background:var(--tblr-bg-surface);color:var(--tblr-body-color);font:inherit;border-radius:4px}
-.btn {display:inline-flex;align-items:center;justify-content:center;padding:8px 15px;text-decoration:none;cursor:pointer;font-weight:600}
-.btn:hover {background:var(--tblr-bg-surface-secondary)}
-.btn-primary,.btn-primary:hover {background:var(--tblr-primary);border-color:var(--tblr-primary);color:var(--demo-on-primary)}
-.form-check-input {accent-color:var(--tblr-primary)}
-.demohead {display:flex;align-items:center;gap:16px;background:var(--tblr-bg-surface);padding:12px clamp(16px,4vw,60px);font-size:15px;border-bottom:1px solid var(--tblr-border-color)}
-.demohead b {font-size:21px;letter-spacing:-1px}
-.demohead span {border-left:1px solid var(--tblr-border-color);padding-left:16px}
-.demohead label {margin-left:auto}.demohead select {padding:6px}
-.demofoot {max-width:1180px;margin:0 auto 20px;padding:0 20px;color:var(--tblr-secondary-color);font-size:14px}
-[hidden]{display:none!important}
-@media(max-width:600px){.demohead{gap:8px}.demohead span{display:none}.demofoot{padding:12px 16px}}
-
-.gu-backups {padding:24px 0}
+.gu-backups > p {margin:0 0 .85rem}
 .gu-backups h3 {margin:22px 0 8px}
 .gu-backups form {margin:12px 0}
 .gu-backups label:not(.gu-choice) {display:grid;gap:4px;margin:10px 0}
@@ -130,457 +123,369 @@ a {color:var(--tblr-link-color)}
 .gu-bpolicy:not(:has([name=enabled]:checked)) .gu-bcalendar,
 .gu-bcalendar:not(:has([name=kind] option[value=weekly]:checked)) .gu-weekday,
 .gu-bcalendar:not(:has([name=kind] option[value=monthly]:checked)) .gu-monthday {display:none!important}
-</style>
-</head><body><section data-tab="atualizacao" hidden="">
 
-<main class="gu">
-<header class="gu-brand"><span><b>GLPI</b> SecureUpdate</span><span class="gu-admin">Super-Admin</span></header>
+@media(max-width:800px){
+ .gu {grid-template-columns:1fr;min-height:0}
+ .gu-rail {flex-direction:row;align-items:center;flex-wrap:wrap;gap:.5rem;padding:.65rem}
+ .gu-nav {display:flex;flex-wrap:wrap}
+ .gu-brand {display:none}
+ .gu-admin {margin:0 0 0 auto}
+ .gu-indexed .gu-split {display:block}
+ .gu-index {display:flex;flex-wrap:wrap;border-inline-end:0;border-bottom:1px solid var(--line)}
+ .gu-index a {border:0}
+}
+</style></head><body><header class="demobar"><strong>SecureUpdate · Demonstração do Console operacional</strong><label>Tema <select id="theme"><option value="light dark">Sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select></label><span id="demo-status" role="status">Dados de exemplo</span></header><article data-demo="atualizacao"><main class="gu">
+<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" aria-current="page">Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" >Debug</a></nav>
+<span class="gu-admin">Super-Admin</span></aside>
+<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
 <h1>Atualizações do GLPI</h1>
-<nav class="gu-nav" aria-label="Atualizações do GLPI"><a href="#atualizacao" aria-current="page">Atualização</a><a href="#saude">Saúde</a><a href="#backups">Backups</a><a href="#notificacoes">Notificações</a><a href="#debug">Debug</a></nav>
 
 
 
 <dl class="gu-strip" aria-label="Comparação de versões">
     <div><dt>Versão instalada</dt><dd>12.0.1</dd></div>
     <div><dt>Versão disponível</dt><dd>12.0.2</dd></div>
-    <div><dt>Urgência</dt><dd><span class="gu-badge" data-level="alta">alta</span></dd></div>
+    <div><dt>Urgência</dt><dd><span class="gu-badge" data-level="alta">Alta</span></dd></div>
 </dl>
 
+<div class="gu-ledger">
+<h2 class="gu-ledger-title">Pacote e aprovação</h2>
+<div class="gu-split"><nav class="gu-index" aria-label="Pacote e aprovação" hidden></nav>
+<div class="gu-inspector">
+<section class="gu-pane" id="gu-versao" data-label="Resumo da versão">
+<h2>Resumo da versão</h2>
 
-<div class="gu-workspace">
-    <section class="gu-card"><h2>Resumo da versão</h2>
         <dl class="gu-summary">
             <div><dt>Ramo</dt><dd>12.0</dd></div>
             <div><dt>Pacote</dt><dd>glpi-12.0.2.tgz</dd></div>
             <div><dt>Origem</dt><dd>Baixado pelo servidor</dd></div>
         </dl>
         <h2>Changelog</h2>
-        
+
         <details class="gu-note" open><summary>GLPI 12.0.2</summary>
-            <div class="gu-notes">• Ajustes no envio de notificações.</div><a href="https://github.com/glpi-project/glpi/releases/tag/12.0.2" rel="noopener noreferrer">Abrir notas oficiais ↗</a>
+            <div class="gu-notes">Ajustes nas notificações por e-mail (exemplo).</div><a href="https://github.com/glpi-project/glpi/releases" rel="noopener noreferrer">Abrir notas oficiais ↗</a>
         </details>
-    </section>
-    <aside class="gu-card gu-package"><h2>Preparar atualização</h2>
-        
+<div class="gu-check"><small>Última consulta em 21/11/2026 09:35</small>
+<form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="check"><button class="btn">Consultar versões</button></form></div>
+</section>
+<section class="gu-pane" id="gu-pacote" data-label="Verificação e aprovação">
+<h2>Verificação e aprovação</h2>
+<div class="gu-package">
+
         <fieldset class="gu-picker"><legend>Origem do pacote</legend>
             <div class="gu-segments">
                 <label><input type="radio" name="package_source" value="download" checked><span>Baixar pelo servidor</span></label>
-                <label><input type="radio" name="package_source" value="upload"><span>Enviar do computador</span></label>
+                <label><input type="radio" name="package_source" value="upload" ><span>Enviar do computador</span></label>
             </div>
         </fieldset>
-        
+
         <div class="gu-source" data-source="download">
-            
+
             <details class="gu-proof"><summary>SHA-256 verificado</summary>
-                <p>12345678 bytes</p><code>e8ec0852a01cdcdf8500d080a4dd6916ad2991cd27ca44ddd3cd93685ba986d0</code>
+                <p>125842113 bytes</p><code>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code>
             </details>
             <form class="gu-approval" method="post">
-                <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="apply"><input type="hidden" name="ref" value="demo-recibo">
+                <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="apply"><input type="hidden" name="ref" value="demo">
                 <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required><span>Autorizo a atualização e o rollback em caso de falha antes da reabertura.</span></label>
                 <button class="btn btn-primary" type="submit" disabled>Aprovar atualização</button>
                 <noscript><button class="btn" type="submit">Confirmar autorização e atualizar</button></noscript>
             </form>
             <details class="gu-note"><summary>Verificar outro pacote</summary>
-            
-            
+
+
             <p>O servidor compara o pacote com o SHA-256 da release oficial antes de liberar a aprovação.</p>
             <form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="download"><input type="hidden" name="ref" value="demo"><button class="btn" type="submit">Baixar e verificar pacote</button></form>
-            
+
             </details>
         </div>
-        
+
         <div class="gu-source" data-source="upload">
-            
-            
-            <p><a href="https://github.com/glpi-project/glpi/releases/download/12.0.2/glpi-12.0.2.tgz" rel="noopener noreferrer">Baixar o .tgz oficial do GLPI 12.0.2</a></p>
+
+
+            <p><a href="https://github.com/glpi-project/glpi/releases" rel="noopener noreferrer">Baixar o .tgz oficial do GLPI 12.0.2</a></p>
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="upload"><input type="hidden" name="ref" value="demo">
                 <label>Arquivo compactado (.tgz)<input class="form-control" type="file" name="package" accept=".tgz,.tar.gz" required></label>
                 <button class="btn" type="submit">Enviar e verificar arquivo</button>
             </form>
-            
-            
+
+
         </div>
-        
-        
-    </aside>
+
+
 </div>
+</section>
+<section class="gu-pane" id="gu-rollback" data-label="Rollback">
+<h2>Rollback</h2>
+<p>Ponto de restauração de 21/11/2026 09:38. O serviço salva o estado atual antes de reverter. Chamados posteriores ao backup deixarão de aparecer na instalação restaurada.</p><form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="rollback"><input type="hidden" name="ref" value="demo"><label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo voltar ao ponto indicado.</label><button class="btn">Aprovar rollback</button></form>
+</section>
+</div></div></div>
 
-<div class="gu-check"><small>Última consulta em 20/11/2026 15:58 BRT</small>
-<form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="check"><button class="btn">Consultar versões</button></form></div>
-
-
-</main></section><section data-tab="saude" hidden="">
-
-<main class="gu">
-<header class="gu-brand"><span><b>GLPI</b> SecureUpdate</span><span class="gu-admin">Super-Admin</span></header>
-<h1>Atualizações do GLPI</h1>
-<nav class="gu-nav" aria-label="Atualizações do GLPI"><a href="#atualizacao">Atualização</a><a href="#saude" aria-current="page">Saúde</a><a href="#backups">Backups</a><a href="#notificacoes">Notificações</a><a href="#debug">Debug</a></nav>
+</div></main></article><article data-demo="saude" hidden><main class="gu">
+<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" aria-current="page">Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" >Debug</a></nav>
+<span class="gu-admin">Super-Admin</span></aside>
+<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<h1>Saúde da instalação</h1>
 
 
 
-<section class="gu-detail"><h2>Último healthcheck</h2><p>O diagnóstico completo e sua pontuação são fornecidos pelo <a href="https://github.com/JoaoPauloSCosta/glpi-health-check">GLPI Health Check</a>, plugin de terceiros de João Paulo S. Costa, licenciado sob a GPLv3 ou posterior. O SecureUpdate compara os resultados e apresenta as regressões.</p><dl><div><dt>Núcleo</dt><dd>Banco, esquema e arquivos verificados</dd></div><div><dt>GLPI Health Check</dt><dd>Diagnóstico #18 · 93/100</dd></div><div><dt>Regressões críticas</dt><dd>Nenhuma detectada</dd></div><div><dt>Verificações ignoradas</dt><dd>2</dd></div></dl></section>
+<div class="gu-ledger">
+<h2 class="gu-ledger-title">Resultados e cobertura</h2>
+<div class="gu-split"><nav class="gu-index" aria-label="Resultados e cobertura" hidden></nav>
+<div class="gu-inspector">
+<section class="gu-pane" id="gu-verificacoes" data-label="Verificações">
+<h2>Verificações</h2>
+<p class="gu-credit">Diagnóstico completo de João Paulo S. Costa · <a href="#gu-autoria">Créditos do GLPI Health Check</a></p>
+<dl class="gu-summary"><div><dt>Núcleo</dt><dd>Banco e arquivos verificados</dd></div><div><dt>GLPI Health Check</dt><dd>Diagnóstico #18 · 93/100</dd></div></dl>
+</section>
+<section class="gu-pane" id="gu-comparacao" data-label="Comparação">
+<h2>Comparação</h2>
+<dl class="gu-summary"><div><dt>Regressões críticas</dt><dd>Nenhuma detectada</dd></div></dl>
+</section>
+<section class="gu-pane" id="gu-autoria" data-label="Origem do diagnóstico">
+<h2>Origem do diagnóstico</h2>
+<p>O diagnóstico completo e sua pontuação são fornecidos pelo <a href="https://github.com/JoaoPauloSCosta/glpi-health-check">GLPI Health Check</a>, plugin de terceiros de João Paulo S. Costa, licenciado sob a GPLv3 ou posterior. O SecureUpdate compara os resultados e apresenta as regressões.</p>
+</section>
+</div></div></div>
 
-</main></section><section data-tab="backups" hidden="">
-
-<main class="gu">
-<header class="gu-brand"><span><b>GLPI</b> SecureUpdate</span><span class="gu-admin">Super-Admin</span></header>
-<h1>Atualizações do GLPI</h1>
-<nav class="gu-nav" aria-label="Atualizações do GLPI"><a href="#atualizacao">Atualização</a><a href="#saude">Saúde</a><a href="#backups" aria-current="page">Backups</a><a href="#notificacoes">Notificações</a><a href="#debug">Debug</a></nav>
+</div></main></article><article data-demo="backups" hidden><main class="gu">
+<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" aria-current="page">Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" >Debug</a></nav>
+<span class="gu-admin">Super-Admin</span></aside>
+<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<h1>Backups do GLPI</h1>
 
 
 
 <section class="gu-backups">
-<h2>Backups do GLPI</h2>
 
 
-<p>Destino selecionado: <strong>nas-ti</strong> · Próximo backup: 23/11/2026 02:00 -03</p>
 
-<div class="gu-workspace">
-<section class="gu-card"><h2>Destino e agendamento</h2>
-<form method="post" class="gu-bpolicy"><fieldset>
-<input type="hidden" name="op" value="bsave"><input type="hidden" name="approval_token" value="demonstracao">
-<label>Salvar em <select class="form-select" name="destination"><option value="local">Neste servidor · Local</option><option value="nas-ti" selected>NAS da TI · NAS</option><option value="s3-ti">Nuvem S3 · Nuvem</option></select></label>
-<small>Os destinos locais, NAS e nuvem são cadastrados no servidor Linux.</small>
-<label class="gu-choice"><input class="form-check-input" name="enabled" type="checkbox" checked> Agendar backups com janela de manutenção</label>
-<div class="gu-bcalendar">
-<label>Frequência <select class="form-select" name="kind"><option value="daily">Diariamente</option><option value="weekly" selected>Semanalmente</option><option value="first">Primeiro dia do mês</option><option value="last">Último dia do mês</option><option value="monthly">Dia do mês</option></select></label>
-<label class="gu-weekday">Dia da semana <select class="form-select" name="weekday"><option value="1" selected>Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option><option value="7">Domingo</option></select></label>
-<label class="gu-monthday">Dia do mês <select class="form-select" name="day"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></label>
-<label>Horário <input class="form-control" type="time" name="at" value="02:00"></label>
-<label>Fuso horário <select class="form-select" name="zone"><option selected>America/Sao_Paulo</option><option>America/Manaus</option><option>America/Fortaleza</option><option>Europe/Lisbon</option><option>UTC</option></select></label>
-</div>
-<h3>Retenção</h3>
-<label>Manter as cópias mais recentes <input class="form-control" type="number" name="keep" value="2" min="1" max="1000" required></label>
-<label>Preservar também as cópias dos últimos dias <input class="form-control" name="days" type="number" min="0" max="3650" value="0" required></label>
-<label class="gu-choice"><input class="form-check-input" type="checkbox" name="auto"> Limpar cópias fora da retenção após um novo backup bem-sucedido neste destino</label>
-<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Confirmo o destino, a janela de manutenção e a política de exclusão selecionados.</label>
-<button class="btn btn-primary">Salvar política</button></fieldset></form>
-</section>
-<section class="gu-card"><h2>Operações</h2>
+<dl class="gu-strip"><div><dt>Cópias</dt><dd>1</dd></div><div><dt>Destino</dt><dd>nas</dd></div><div><dt>Próximo backup</dt><dd>23/11 02:00</dd></div></dl>
 
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="op" value="btest">
-<label>Testar destino <select class="form-select" name="ref"><option value="local">Neste servidor</option><option value="nas-ti" selected>NAS da TI</option><option value="s3-ti">Nuvem S3</option></select></label>
-<button class="btn">Testar conexão</button></form>
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="op" value="backup">
-<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo entrar em manutenção para copiar o banco, a instalação e os dados externos.</label><button class="btn btn-primary">Criar backup agora</button></form>
-
-<h3>Prévia da limpeza</h3><p>1 cópia(s) fora da política salva para nas-ti.</p>
-<ul><li><code>20261102T050000Z-0000000000000002</code></li></ul>
-<form method="post"><input type="hidden" name="op" value="bprune"><input type="hidden" name="ref" value="demonstracao"><input type="hidden" name="approval_token" value="demonstracao">
-<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo excluir todas as 1 cópias da prévia.</label><button class="btn">Aplicar limpeza</button></form>
-</section></div>
+<div class="gu-ledger">
+<h2 class="gu-ledger-title">Armazenamento e cópias</h2>
+<div class="gu-split"><nav class="gu-index" aria-label="Armazenamento e cópias" hidden></nav>
+<div class="gu-inspector">
+<section class="gu-pane" id="gu-catalogo" data-label="Catálogo de backups">
 <h2>Catálogo de backups</h2>
-<details class="gu-note"><summary>16/11/2026 02:00 -03 · 12.0.1 · 184,3 MiB · nas-ti</summary>
-<p><code>20261116T050000Z-0000000000000010</code> · Cópia verificada</p>
+<details class="gu-note"><summary>21 nov · 02:00 · 12.0.1 · 184,3 MiB · NAS da TI</summary>
+<p><code>20261121T050000Z-abcdef1234567890</code> · Cópia verificada</p>
 <div class="gu-actions">
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="op" value="bfetch"><input type="hidden" name="ref" value="20261116T050000Z-0000000000000010"><button class="btn">Baixar arquivo TAR</button></form>
+<form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="bfetch"><input type="hidden" name="ref" value="20261121T050000Z-abcdef1234567890"><button class="btn">Baixar arquivo TAR</button></form>
 </div>
 <details><summary>Restaurar ou excluir</summary><p>Restaurar substitui os dados em uso pelos desta cópia e abre uma janela de manutenção. Excluir remove esta cópia do destino e do catálogo.</p>
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="ref" value="20261116T050000Z-0000000000000010">
+<form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="ref" value="20261121T050000Z-abcdef1234567890">
 <label>Digite o identificador completo <input class="form-control" name="typed" required autocomplete="off"></label>
-<button class="btn" type="submit" name="op" value="brestore">Restaurar esta cópia</button> <button class="btn" type="submit" name="op" value="bdelete">Excluir esta cópia</button>
-</form></details></details><details class="gu-note"><summary>09/11/2026 02:00 -03 · 12.0.1 · 184,3 MiB · nas-ti</summary>
-<p><code>20261109T050000Z-0000000000000009</code> · Cópia verificada</p>
-<div class="gu-actions">
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="op" value="bfetch"><input type="hidden" name="ref" value="20261109T050000Z-0000000000000009"><button class="btn">Baixar arquivo TAR</button></form>
-</div>
-<details><summary>Restaurar ou excluir</summary><p>Restaurar substitui os dados em uso pelos desta cópia e abre uma janela de manutenção. Excluir remove esta cópia do destino e do catálogo.</p>
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="ref" value="20261109T050000Z-0000000000000009">
-<label>Digite o identificador completo <input class="form-control" name="typed" required autocomplete="off"></label>
-<button class="btn" type="submit" name="op" value="brestore">Restaurar esta cópia</button> <button class="btn" type="submit" name="op" value="bdelete">Excluir esta cópia</button>
-</form></details></details><details class="gu-note"><summary>02/11/2026 02:00 -03 · 12.0.1 · 184,3 MiB · nas-ti</summary>
-<p><code>20261102T050000Z-0000000000000002</code> · Cópia verificada</p>
-<div class="gu-actions">
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="op" value="bfetch"><input type="hidden" name="ref" value="20261102T050000Z-0000000000000002"><button class="btn">Baixar arquivo TAR</button></form>
-</div>
-<details><summary>Restaurar ou excluir</summary><p>Restaurar substitui os dados em uso pelos desta cópia e abre uma janela de manutenção. Excluir remove esta cópia do destino e do catálogo.</p>
-<form method="post"><input type="hidden" name="approval_token" value="demonstracao"><input type="hidden" name="ref" value="20261102T050000Z-0000000000000002">
-<label>Digite o identificador completo <input class="form-control" name="typed" required autocomplete="off"></label>
-<button class="btn" type="submit" name="op" value="brestore">Restaurar esta cópia</button> <button class="btn" type="submit" name="op" value="bdelete">Excluir esta cópia</button>
+<button class="btn" type="submit" name="op" value="brestore" >Restaurar esta cópia</button> <button class="btn" type="submit" name="op" value="bdelete">Excluir esta cópia</button>
 </form></details></details>
 
 <nav class="gu-actions" aria-label="Páginas do catálogo"></nav>
-</section></main></section><section data-tab="notificacoes">
+</section>
+<section class="gu-pane" id="gu-politica" data-label="Destino, agendamento e retenção">
+<h2>Destino, agendamento e retenção</h2>
+<form method="post" class="gu-bpolicy"><fieldset >
+<input type="hidden" name="op" value="bsave"><input type="hidden" name="approval_token" value="demo">
+<label>Salvar em <select class="form-select" name="destination"><option value="local" >Servidor · Local</option><option value="nas" selected>NAS da TI · NAS</option><option value="nuvem" >S3 · Nuvem</option></select></label>
+<small>Os destinos locais, NAS e nuvem são cadastrados no servidor Linux.</small>
+<label class="gu-choice"><input class="form-check-input" name="enabled" type="checkbox" checked> Agendar backups com janela de manutenção</label>
+<div class="gu-bcalendar">
+<label>Frequência <select class="form-select" name="kind"><option value="daily" >Diariamente</option><option value="weekly" selected>Semanalmente</option><option value="monthly" >Dia do mês</option><option value="first" >Primeiro dia do mês</option><option value="last" >Último dia do mês</option></select></label>
+<label class="gu-weekday">Dia da semana <select class="form-select" name="weekday"><option value="1" selected>Segunda-feira</option><option value="2" >Terça-feira</option><option value="3" >Quarta-feira</option><option value="4" >Quinta-feira</option><option value="5" >Sexta-feira</option><option value="6" >Sábado</option><option value="7" >Domingo</option></select></label>
+<label class="gu-monthday">Dia do mês <select class="form-select" name="day"><option value="1" selected>1</option><option value="2" >2</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option><option value="10" >10</option><option value="11" >11</option><option value="12" >12</option><option value="13" >13</option><option value="14" >14</option><option value="15" >15</option><option value="16" >16</option><option value="17" >17</option><option value="18" >18</option><option value="19" >19</option><option value="20" >20</option><option value="21" >21</option><option value="22" >22</option><option value="23" >23</option><option value="24" >24</option><option value="25" >25</option><option value="26" >26</option><option value="27" >27</option><option value="28" >28</option><option value="29" >29</option><option value="30" >30</option><option value="31" >31</option></select></label>
+<label>Horário <input class="form-control" type="time" name="at" value="02:00"></label>
+<label>Fuso horário <select class="form-select" name="zone"><option selected>America/Sao_Paulo</option><option >UTC</option></select></label>
+</div>
+<h3>Retenção</h3>
+<label>Manter as cópias mais recentes <input class="form-control" type="number" name="keep" value="7" min="1" max="1000" required></label>
+<label>Preservar também as cópias dos últimos dias <input class="form-control" name="days" type="number" min="0" max="3650" value="30" required></label>
+<label class="gu-choice"><input class="form-check-input" type="checkbox" name="auto" > Limpar cópias fora da retenção após um novo backup bem-sucedido neste destino</label>
+<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Confirmo o destino, a janela de manutenção e a política de exclusão selecionados.</label>
+<button class="btn btn-primary">Salvar política</button></fieldset></form>
+</section>
+<section class="gu-pane" id="gu-operacoes" data-label="Testar destino ou criar backup">
+<h2>Testar destino ou criar backup</h2>
 
-<main class="gu">
-<header class="gu-brand"><span><b>GLPI</b> SecureUpdate</span><span class="gu-admin">Super-Admin</span></header>
-<h1>Atualizações do GLPI</h1>
-<nav class="gu-nav" aria-label="Atualizações do GLPI"><a href="#atualizacao">Atualização</a><a href="#saude">Saúde</a><a href="#backups">Backups</a><a href="#notificacoes" aria-current="page">Notificações</a><a href="#debug">Debug</a></nav>
+<form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="btest">
+<label>Testar destino <select class="form-select" name="ref"><option value="local" >Servidor</option><option value="nas" selected>NAS da TI</option><option value="nuvem" >S3</option></select></label>
+<button class="btn">Testar conexão</button></form>
+<form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="backup">
+<label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo entrar em manutenção para copiar o banco, a instalação e os dados externos.</label><button class="btn btn-primary">Criar backup agora</button></form>
+
+</section>
+<section class="gu-pane" id="gu-limpeza" data-label="Prévia da limpeza">
+<h2>Prévia da limpeza</h2>
+<p>0 cópia(s) fora da política salva para nas.</p>
+
+</section>
+</div></div></div>
+</section>
+
+</div></main></article><article data-demo="notificacoes" hidden><main class="gu">
+<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" aria-current="page">Notificações</a><a href="#demo-debug" >Debug</a></nav>
+<span class="gu-admin">Super-Admin</span></aside>
+<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<h1>Notificações</h1>
 
 
 
-<section class="gu-detail"><h2>Notificações de atualização</h2>
+<dl class="gu-strip"><div><dt>Consulta</dt><dd>24 h</dd></div>
+<div><dt>Aviso no painel</dt><dd>Ativo</dd></div>
+<div><dt>E-mail de backup</dt><dd>Erros e avisos</dd></div></dl>
 <form method="post" class="gu-schedule">
     <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="settings">
-    <fieldset><legend>Intervalo de consulta</legend>
+<div class="gu-ledger">
+<h2 class="gu-ledger-title">Regras e canais</h2>
+<div class="gu-split"><nav class="gu-index" aria-label="Regras e canais" hidden></nav>
+<div class="gu-inspector">
+<section class="gu-pane" id="gu-email-backups" data-label="E-mail sobre backups">
+<h2>E-mail sobre backups</h2>
+<fieldset aria-label="E-mail sobre backups">
+        <label>Enviar aos Super-Admins ativos
+            <select class="form-select" name="backup_email">
+                <option value="off" >Desativado</option>
+                <option value="issues" selected>Somente erros e avisos</option>
+                <option value="all" >Todos os resultados, incluindo sucessos</option>
+            </select>
+        </label>
+        <small>Inclui backups manuais e agendados, operações do catálogo e cópias de segurança anteriores à atualização ou ao rollback. O e-mail é enviado após o resultado, independentemente do intervalo de consulta de versões.</small>
+
+    </fieldset>
+</section>
+<section class="gu-pane" id="gu-calendario" data-label="Calendário de consulta">
+<h2>Calendário de consulta</h2>
+<fieldset><legend>Intervalo de consulta</legend>
         <label class="gu-choice"><input class="form-check-input" type="radio" name="mode" value="simple" checked> Simples</label>
-        <label class="gu-choice"><input class="form-check-input" type="radio" name="mode" value="advanced"> Avançado</label>
+        <label class="gu-choice"><input class="form-check-input" type="radio" name="mode" value="advanced" > Avançado</label>
     </fieldset>
     <div class="gu-simple">
         <label>Consultar a cada (horas)
-            <select class="form-select" name="hours"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24" selected>24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option><option value="42">42</option><option value="43">43</option><option value="44">44</option><option value="45">45</option><option value="46">46</option><option value="47">47</option><option value="48">48</option><option value="49">49</option><option value="50">50</option><option value="51">51</option><option value="52">52</option><option value="53">53</option><option value="54">54</option><option value="55">55</option><option value="56">56</option><option value="57">57</option><option value="58">58</option><option value="59">59</option><option value="60">60</option><option value="61">61</option><option value="62">62</option><option value="63">63</option><option value="64">64</option><option value="65">65</option><option value="66">66</option><option value="67">67</option><option value="68">68</option><option value="69">69</option><option value="70">70</option><option value="71">71</option><option value="72">72</option><option value="73">73</option><option value="74">74</option><option value="75">75</option><option value="76">76</option><option value="77">77</option><option value="78">78</option><option value="79">79</option><option value="80">80</option><option value="81">81</option><option value="82">82</option><option value="83">83</option><option value="84">84</option><option value="85">85</option><option value="86">86</option><option value="87">87</option><option value="88">88</option><option value="89">89</option><option value="90">90</option><option value="91">91</option><option value="92">92</option><option value="93">93</option><option value="94">94</option><option value="95">95</option><option value="96">96</option><option value="97">97</option><option value="98">98</option><option value="99">99</option><option value="100">100</option><option value="101">101</option><option value="102">102</option><option value="103">103</option><option value="104">104</option><option value="105">105</option><option value="106">106</option><option value="107">107</option><option value="108">108</option><option value="109">109</option><option value="110">110</option><option value="111">111</option><option value="112">112</option><option value="113">113</option><option value="114">114</option><option value="115">115</option><option value="116">116</option><option value="117">117</option><option value="118">118</option><option value="119">119</option><option value="120">120</option><option value="121">121</option><option value="122">122</option><option value="123">123</option><option value="124">124</option><option value="125">125</option><option value="126">126</option><option value="127">127</option><option value="128">128</option><option value="129">129</option><option value="130">130</option><option value="131">131</option><option value="132">132</option><option value="133">133</option><option value="134">134</option><option value="135">135</option><option value="136">136</option><option value="137">137</option><option value="138">138</option><option value="139">139</option><option value="140">140</option><option value="141">141</option><option value="142">142</option><option value="143">143</option><option value="144">144</option><option value="145">145</option><option value="146">146</option><option value="147">147</option><option value="148">148</option><option value="149">149</option><option value="150">150</option><option value="151">151</option><option value="152">152</option><option value="153">153</option><option value="154">154</option><option value="155">155</option><option value="156">156</option><option value="157">157</option><option value="158">158</option><option value="159">159</option><option value="160">160</option><option value="161">161</option><option value="162">162</option><option value="163">163</option><option value="164">164</option><option value="165">165</option><option value="166">166</option><option value="167">167</option><option value="168">168</option></select>
+            <select class="form-select" name="hours"><option value="1" >1</option><option value="2" >2</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option><option value="10" >10</option><option value="11" >11</option><option value="12" >12</option><option value="13" >13</option><option value="14" >14</option><option value="15" >15</option><option value="16" >16</option><option value="17" >17</option><option value="18" >18</option><option value="19" >19</option><option value="20" >20</option><option value="21" >21</option><option value="22" >22</option><option value="23" >23</option><option value="24" selected>24</option><option value="25" >25</option><option value="26" >26</option><option value="27" >27</option><option value="28" >28</option><option value="29" >29</option><option value="30" >30</option><option value="31" >31</option><option value="32" >32</option><option value="33" >33</option><option value="34" >34</option><option value="35" >35</option><option value="36" >36</option><option value="37" >37</option><option value="38" >38</option><option value="39" >39</option><option value="40" >40</option><option value="41" >41</option><option value="42" >42</option><option value="43" >43</option><option value="44" >44</option><option value="45" >45</option><option value="46" >46</option><option value="47" >47</option><option value="48" >48</option><option value="49" >49</option><option value="50" >50</option><option value="51" >51</option><option value="52" >52</option><option value="53" >53</option><option value="54" >54</option><option value="55" >55</option><option value="56" >56</option><option value="57" >57</option><option value="58" >58</option><option value="59" >59</option><option value="60" >60</option><option value="61" >61</option><option value="62" >62</option><option value="63" >63</option><option value="64" >64</option><option value="65" >65</option><option value="66" >66</option><option value="67" >67</option><option value="68" >68</option><option value="69" >69</option><option value="70" >70</option><option value="71" >71</option><option value="72" >72</option><option value="73" >73</option><option value="74" >74</option><option value="75" >75</option><option value="76" >76</option><option value="77" >77</option><option value="78" >78</option><option value="79" >79</option><option value="80" >80</option><option value="81" >81</option><option value="82" >82</option><option value="83" >83</option><option value="84" >84</option><option value="85" >85</option><option value="86" >86</option><option value="87" >87</option><option value="88" >88</option><option value="89" >89</option><option value="90" >90</option><option value="91" >91</option><option value="92" >92</option><option value="93" >93</option><option value="94" >94</option><option value="95" >95</option><option value="96" >96</option><option value="97" >97</option><option value="98" >98</option><option value="99" >99</option><option value="100" >100</option><option value="101" >101</option><option value="102" >102</option><option value="103" >103</option><option value="104" >104</option><option value="105" >105</option><option value="106" >106</option><option value="107" >107</option><option value="108" >108</option><option value="109" >109</option><option value="110" >110</option><option value="111" >111</option><option value="112" >112</option><option value="113" >113</option><option value="114" >114</option><option value="115" >115</option><option value="116" >116</option><option value="117" >117</option><option value="118" >118</option><option value="119" >119</option><option value="120" >120</option><option value="121" >121</option><option value="122" >122</option><option value="123" >123</option><option value="124" >124</option><option value="125" >125</option><option value="126" >126</option><option value="127" >127</option><option value="128" >128</option><option value="129" >129</option><option value="130" >130</option><option value="131" >131</option><option value="132" >132</option><option value="133" >133</option><option value="134" >134</option><option value="135" >135</option><option value="136" >136</option><option value="137" >137</option><option value="138" >138</option><option value="139" >139</option><option value="140" >140</option><option value="141" >141</option><option value="142" >142</option><option value="143" >143</option><option value="144" >144</option><option value="145" >145</option><option value="146" >146</option><option value="147" >147</option><option value="148" >148</option><option value="149" >149</option><option value="150" >150</option><option value="151" >151</option><option value="152" >152</option><option value="153" >153</option><option value="154" >154</option><option value="155" >155</option><option value="156" >156</option><option value="157" >157</option><option value="158" >158</option><option value="159" >159</option><option value="160" >160</option><option value="161" >161</option><option value="162" >162</option><option value="163" >163</option><option value="164" >164</option><option value="165" >165</option><option value="166" >166</option><option value="167" >167</option><option value="168" >168</option></select>
         </label>
     </div>
     <div class="gu-calendar">
         <label>Repetir
             <select class="form-select" name="kind">
-                <option value="daily">Todos os dias</option>
+                <option value="daily" >Todos os dias</option>
                 <option value="weekly" selected>Toda semana</option>
-                <option value="first">Primeiro dia de cada mês</option>
-                <option value="monthly">Dia específico de cada mês</option>
-                <option value="last">Último dia de cada mês</option>
+                <option value="first" >Primeiro dia de cada mês</option>
+                <option value="monthly" >Dia específico de cada mês</option>
+                <option value="last" >Último dia de cada mês</option>
             </select>
         </label>
         <label class="gu-weekday">Dia da semana
-            <select class="form-select" name="weekday"><option value="1" selected>Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option><option value="7">Domingo</option></select>
+            <select class="form-select" name="weekday"><option value="1" selected>Segunda-feira</option><option value="2" >Terça-feira</option><option value="3" >Quarta-feira</option><option value="4" >Quinta-feira</option><option value="5" >Sexta-feira</option><option value="6" >Sábado</option><option value="7" >Domingo</option></select>
         </label>
         <label class="gu-monthday">Dia do mês
-            <select class="form-select" name="day"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7" selected>7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select>
+            <select class="form-select" name="day"><option value="1" >1</option><option value="2" >2</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" selected>7</option><option value="8" >8</option><option value="9" >9</option><option value="10" >10</option><option value="11" >11</option><option value="12" >12</option><option value="13" >13</option><option value="14" >14</option><option value="15" >15</option><option value="16" >16</option><option value="17" >17</option><option value="18" >18</option><option value="19" >19</option><option value="20" >20</option><option value="21" >21</option><option value="22" >22</option><option value="23" >23</option><option value="24" >24</option><option value="25" >25</option><option value="26" >26</option><option value="27" >27</option><option value="28" >28</option><option value="29" >29</option><option value="30" >30</option><option value="31" >31</option></select>
             <small>Meses sem o dia escolhido são pulados.</small>
         </label>
         <label>Horário <input class="form-control" type="time" name="at" value="09:00"></label>
-        <label>Fuso horário <select class="form-select" name="zone"><option selected>America/Sao_Paulo</option><option>Europe/Lisbon</option><option>UTC</option></select></label>
+        <label>Fuso horário <select class="form-select" name="zone"><option selected>America/Sao_Paulo</option><option >UTC</option></select></label>
     </div>
-    <fieldset><legend>Onde receber</legend>
+
+</section>
+<section class="gu-pane" id="gu-canais" data-label="Avisos de atualização">
+<h2>Avisos de atualização</h2>
+<fieldset><legend>Onde receber</legend>
         <label class="gu-choice"><input class="form-check-input" type="checkbox" name="browser" checked> Painel do GLPI</label>
-        <label class="gu-choice"><input class="form-check-input" type="checkbox" name="email"> E-mail dos Super-Admins ativos</label>
+        <label class="gu-choice"><input class="form-check-input" type="checkbox" name="email" > E-mail dos Super-Admins ativos</label>
     </fieldset>
-    <p class="gu-next">Próxima consulta agendada <strong>21/11/2026 15:58</strong> (America/Sao_Paulo)</p>
-    <fieldset><legend>E-mail sobre backups</legend>
-        <label>Enviar aos Super-Admins ativos
-            <select class="form-select" name="backup_email">
-                <option value="off" selected>Desativado</option>
-                <option value="issues">Somente erros e avisos</option>
-                <option value="all">Todos os resultados, incluindo sucessos</option>
-            </select>
-        </label>
-        <small>Inclui backups manuais e agendados, operações do catálogo e cópias de segurança anteriores à atualização ou ao rollback. O e-mail é enviado após o resultado, independentemente do intervalo de consulta de versões.</small>
-        
-    </fieldset><button class="btn btn-primary">Salvar preferências</button>
-</form></section>
+</section>
+</div></div></div>
+<button class="btn btn-primary" type="submit">Salvar preferências</button>
+</form>
 
-</main></section><section data-tab="debug" hidden="">
-
-<main class="gu">
-<header class="gu-brand"><span><b>GLPI</b> SecureUpdate</span><span class="gu-admin">Super-Admin</span></header>
-<h1>Atualizações do GLPI</h1>
-<nav class="gu-nav" aria-label="Atualizações do GLPI"><a href="#atualizacao">Atualização</a><a href="#saude">Saúde</a><a href="#backups">Backups</a><a href="#notificacoes">Notificações</a><a href="#debug" aria-current="page">Debug</a></nav>
+</div></main></article><article data-demo="debug" hidden><main class="gu">
+<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" aria-current="page">Debug</a></nav>
+<span class="gu-admin">Super-Admin</span></aside>
+<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<h1>Debug do executor</h1>
 
 
 
-<section class="gu-detail"><div class="gu-section-title"><h2>Diagnóstico do executor</h2><a class="btn" href="#exportar" download>Exportar JSON</a></div><dl><div><dt>Serviço local</dt><dd>Conectado</dd></div><div><dt>Versão do executor</dt><dd>1.0.7</dd></div><div><dt>Estado do trabalho</dt><dd>disponível</dd></div><div><dt>Identificador</dt><dd>2c79fbda6e38a053</dd></div><div><dt>Etapa da transação</dt><dd>Nenhuma em andamento</dd></div><div><dt>Última consulta</dt><dd>20/11/2026 18:58 UTC</dd></div><div><dt>Próxima consulta</dt><dd>21/11/2026 18:58 UTC</dd></div><div><dt>Ponto de rollback</dt><dd>Indisponível</dd></div></dl></section>
+<div class="gu-ledger">
+<h2 class="gu-ledger-title">Diagnóstico do serviço</h2>
+<div class="gu-split"><nav class="gu-index" aria-label="Diagnóstico do serviço" hidden></nav>
+<div class="gu-inspector">
+<section class="gu-pane" id="gu-trabalho" data-label="Trabalho em andamento">
+<h2>Trabalho em andamento</h2>
+<dl class="gu-summary"><div><dt>Identificador</dt><dd>2c79fbda6e38a053</dd></div><div><dt>Estado do trabalho</dt><dd>Concluído</dd></div></dl>
+</section>
+<section class="gu-pane" id="gu-executor" data-label="Executor">
+<h2>Executor</h2>
+<dl class="gu-summary"><div><dt>Serviço local</dt><dd>Conectado</dd></div><div><dt>Versão do executor</dt><dd>1.0.8</dd></div></dl>
+</section>
+<section class="gu-pane" id="gu-relatorio" data-label="Relatório de suporte">
+<h2>Relatório de suporte</h2>
+<p>Exporte o resumo do executor e o identificador do trabalho para consultar o log correspondente no servidor.</p><a class="btn" href="#demo-export" download>Exportar JSON</a>
+</section>
+</div></div></div>
 
-</main></section><template id="ready-download"><div class="gu-workspace">
-    <section class="gu-card"><h2>Resumo da versão</h2>
-        <dl class="gu-summary">
-            <div><dt>Ramo</dt><dd>12.0</dd></div>
-            <div><dt>Pacote</dt><dd>glpi-12.0.2.tgz</dd></div>
-            <div><dt>Origem</dt><dd>Baixado pelo servidor</dd></div>
-        </dl>
-        <h2>Changelog</h2>
-        
-        <details class="gu-note" open><summary>GLPI 12.0.2</summary>
-            <div class="gu-notes">• Ajustes no envio de notificações.</div><a href="https://github.com/glpi-project/glpi/releases/tag/12.0.2" rel="noopener noreferrer">Abrir notas oficiais ↗</a>
-        </details>
-    </section>
-    <aside class="gu-card gu-package"><h2>Preparar atualização</h2>
-        
-        <fieldset class="gu-picker"><legend>Origem do pacote</legend>
-            <div class="gu-segments">
-                <label><input type="radio" name="package_source" value="download" checked><span>Baixar pelo servidor</span></label>
-                <label><input type="radio" name="package_source" value="upload"><span>Enviar do computador</span></label>
-            </div>
-        </fieldset>
-        
-        <div class="gu-source" data-source="download">
-            
-            <details class="gu-proof"><summary>SHA-256 verificado</summary>
-                <p>12345678 bytes</p><code>e8ec0852a01cdcdf8500d080a4dd6916ad2991cd27ca44ddd3cd93685ba986d0</code>
-            </details>
-            <form class="gu-approval" method="post">
-                <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="apply"><input type="hidden" name="ref" value="demo-recibo">
-                <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required><span>Autorizo a atualização e o rollback em caso de falha antes da reabertura.</span></label>
-                <button class="btn btn-primary" type="submit" disabled>Aprovar atualização</button>
-                <noscript><button class="btn" type="submit">Confirmar autorização e atualizar</button></noscript>
-            </form>
-            <details class="gu-note"><summary>Verificar outro pacote</summary>
-            
-            
-            <p>O servidor compara o pacote com o SHA-256 da release oficial antes de liberar a aprovação.</p>
-            <form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="download"><input type="hidden" name="ref" value="demo"><button class="btn" type="submit">Baixar e verificar pacote</button></form>
-            
-            </details>
-        </div>
-        
-        <div class="gu-source" data-source="upload">
-            
-            
-            <p><a href="https://github.com/glpi-project/glpi/releases/download/12.0.2/glpi-12.0.2.tgz" rel="noopener noreferrer">Baixar o .tgz oficial do GLPI 12.0.2</a></p>
-            <form method="post" enctype="multipart/form-data">
-                <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="upload"><input type="hidden" name="ref" value="demo">
-                <label>Arquivo compactado (.tgz)<input class="form-control" type="file" name="package" accept=".tgz,.tar.gz" required></label>
-                <button class="btn" type="submit">Enviar e verificar arquivo</button>
-            </form>
-            
-            
-        </div>
-        
-        
-    </aside>
-</div>
 
-</template><template id="ready-upload"><div class="gu-workspace">
-    <section class="gu-card"><h2>Resumo da versão</h2>
-        <dl class="gu-summary">
-            <div><dt>Ramo</dt><dd>12.0</dd></div>
-            <div><dt>Pacote</dt><dd>glpi-12.0.2.tgz</dd></div>
-            <div><dt>Origem</dt><dd>Arquivo enviado do computador</dd></div>
-        </dl>
-        <h2>Changelog</h2>
-        
-        <details class="gu-note" open><summary>GLPI 12.0.2</summary>
-            <div class="gu-notes">• Ajustes no envio de notificações.</div><a href="https://github.com/glpi-project/glpi/releases/tag/12.0.2" rel="noopener noreferrer">Abrir notas oficiais ↗</a>
-        </details>
-    </section>
-    <aside class="gu-card gu-package"><h2>Preparar atualização</h2>
-        
-        <fieldset class="gu-picker"><legend>Origem do pacote</legend>
-            <div class="gu-segments">
-                <label><input type="radio" name="package_source" value="download"><span>Baixar pelo servidor</span></label>
-                <label><input type="radio" name="package_source" value="upload" checked><span>Enviar do computador</span></label>
-            </div>
-        </fieldset>
-        
-        <div class="gu-source" data-source="download">
-            
-            
-            <p>O servidor compara o pacote com o SHA-256 da release oficial antes de liberar a aprovação.</p>
-            <form method="post"><input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="download"><input type="hidden" name="ref" value="demo"><button class="btn" type="submit">Baixar e verificar pacote</button></form>
-            
-            
-        </div>
-        
-        <div class="gu-source" data-source="upload">
-            
-            <details class="gu-proof"><summary>SHA-256 verificado</summary>
-                <p>12345678 bytes</p><code>e8ec0852a01cdcdf8500d080a4dd6916ad2991cd27ca44ddd3cd93685ba986d0</code>
-            </details>
-            <form class="gu-approval" method="post">
-                <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="apply"><input type="hidden" name="ref" value="demo-recibo">
-                <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required><span>Autorizo a atualização e o rollback em caso de falha antes da reabertura.</span></label>
-                <button class="btn btn-primary" type="submit" disabled>Aprovar atualização</button>
-                <noscript><button class="btn" type="submit">Confirmar autorização e atualizar</button></noscript>
-            </form>
-            <details class="gu-note"><summary>Verificar outro pacote</summary>
-            
-            
-            <p><a href="https://github.com/glpi-project/glpi/releases/download/12.0.2/glpi-12.0.2.tgz" rel="noopener noreferrer">Baixar o .tgz oficial do GLPI 12.0.2</a></p>
-            <form method="post" enctype="multipart/form-data">
-                <input type="hidden" name="approval_token" value="demo"><input type="hidden" name="op" value="upload"><input type="hidden" name="ref" value="demo">
-                <label>Arquivo compactado (.tgz)<input class="form-control" type="file" name="package" accept=".tgz,.tar.gz" required></label>
-                <button class="btn" type="submit">Enviar e verificar arquivo</button>
-            </form>
-            
-            </details>
-        </div>
-        
-        
-    </aside>
-</div>
-
-</template><footer class="demofoot"><label>Tema da prévia <select id="demo-theme"><option value="system">Do sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select></label><p>Demonstração com dados fictícios. As ações são simuladas neste navegador.</p></footer>
-<script>(() => {
+</div></main></article><script>
+const pages=[...document.querySelectorAll('[data-demo]')];
+function demoPage(){
+ const route=location.hash.slice(1);
+ const active=pages.find(p=>'demo-'+p.dataset.demo===route||[...p.querySelectorAll('.gu-pane')].some(s=>s.id===route))||pages[0];
+ pages.forEach(p=>p.hidden=p!==active);
+}
+window.addEventListener('hashchange',demoPage);demoPage();
+document.getElementById('theme').onchange=e=>document.documentElement.style.colorScheme=e.target.value;
+document.addEventListener('submit',e=>{
+ e.preventDefault();const data=new FormData(e.target);const op=e.submitter?.name==='op'?e.submitter.value:data.get('op');
+ const out=document.getElementById('demo-status');
+ out.textContent=(op==='brestore'||op==='bdelete')&&data.get('typed')!==data.get('ref')?'Identificador de backup divergente.':'Simulação concluída. Nenhuma operação foi enviada ao GLPI.';
+});
+document.addEventListener('click',e=>{const a=e.target.closest('a[download]');if(!a)return;e.preventDefault();const u=URL.createObjectURL(new Blob([JSON.stringify({demonstracao:true,executor:'1.0.8'},null,2)],{type:'application/json'}));const l=document.createElement('a');l.href=u;l.download='debug-exemplo.json';l.click();setTimeout(()=>URL.revokeObjectURL(u),1000)});
+</script><script>(() => {
     function syncApproval(form) {
         form.querySelector('button.btn-primary').disabled = !form.elements.confirm.checked;
     }
+
+    function syncSections(ledger) {
+        const panes = Array.from(ledger.querySelectorAll('.gu-pane'));
+        const index = ledger.querySelector('.gu-index');
+        if (!panes.length || !index) return;
+        if (!index.children.length) {
+            for (const pane of panes) {
+                const link = document.createElement('a');
+                link.href = '#' + pane.id;
+                link.textContent = pane.dataset.label;
+                link.setAttribute('aria-controls', pane.id);
+                index.append(link);
+            }
+        }
+        const selected = panes.find(pane => '#' + pane.id === location.hash) || panes[0];
+        panes.forEach(pane => { pane.hidden = pane !== selected; });
+        for (const link of index.children) {
+            if (link.hash === '#' + selected.id) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        }
+        index.hidden = panes.length < 2;
+        ledger.classList.toggle('gu-indexed', !index.hidden);
+    }
+
     function syncPage() {
         document.querySelectorAll('.gu-approval').forEach(syncApproval);
+        document.querySelectorAll('.gu-ledger').forEach(syncSections);
     }
     document.addEventListener('change', event => {
         const input = event.target;
-        if (input.matches('.gu-approval input[name="confirm"]')) {
-            syncApproval(input.form);
-        } else if (input.matches('.gu-picker input[name="package_source"]')) {
+        if (input.matches('.gu-approval input[name="confirm"]')) syncApproval(input.form);
+        else if (input.matches('.gu-picker input[name="package_source"]')) {
             input.closest('.gu-package').querySelectorAll('.gu-approval').forEach(form => {
                 form.elements.confirm.checked = false;
                 syncApproval(form);
             });
         }
     });
+    window.addEventListener('hashchange', syncPage);
     window.addEventListener('pageshow', syncPage);
     syncPage();
 })();
-</script>
-<script>
-const demo={"Serviço local": "Conectado", "Versão do executor": "1.0.7", "Estado do trabalho": "disponível", "Identificador": "2c79fbda6e38a053", "Etapa da transação": "Nenhuma em andamento", "Última consulta": "20/11/2026 18:58 UTC", "Próxima consulta": "21/11/2026 18:58 UTC", "Ponto de rollback": "Indisponível"};
-const themeSelect=document.getElementById('demo-theme');
-const systemTheme=matchMedia('(prefers-color-scheme: dark)');
-function applyPreviewTheme(){
- const dark=themeSelect.value==='dark'||(themeSelect.value==='system'&&systemTheme.matches);
- document.documentElement.dataset.glpiThemeDark=dark?'1':'0';
-}
-themeSelect.addEventListener('change',applyPreviewTheme);
-systemTheme.addEventListener('change',applyPreviewTheme);
-applyPreviewTheme();
-function selectTab(){const all=[...document.querySelectorAll('[data-tab]')];const id=location.hash==='#avisos'?'notificacoes':location.hash.slice(1);const active=all.find(x=>x.dataset.tab===id)||all.find(x=>x.dataset.tab==='notificacoes');for(const x of all)x.hidden=x!==active;}
-addEventListener('hashchange',selectTab);selectTab();
-document.addEventListener('click',event=>{const a=event.target.closest('a[download]');if(!a)return;event.preventDefault();const tmp=document.createElement('a');const obj=URL.createObjectURL(new Blob([JSON.stringify(demo,null,2)],{type:'application/json'}));tmp.href=obj;tmp.download='glpi-debug-demonstracao.json';tmp.click();setTimeout(()=>URL.revokeObjectURL(obj),1000);});
-function demoSchedule(form){
- const values=new FormData(form);
- const now=Date.parse('2026-11-20T18:58Z');
- const simple=values.get('mode')==='simple';
- const zone=simple?'America/Sao_Paulo':values.get('zone');
- const fmt=new Intl.DateTimeFormat('pt-BR',{timeZone:zone,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
- let next;
- if(simple) next=now+Number(values.get('hours'))*3600000;
- else {
-  const at=values.get('at'),kind=values.get('kind');
-  if(!at) return 'Informe o horário para calcular a próxima consulta.';
-  let cursor=Math.floor(now/3600000)*3600000+Number(at.slice(-2))*60000;
-  for(let i=0;i<24*100;i++,cursor+=3600000){
-   if(cursor<=now)continue;
-   const p=Object.fromEntries(fmt.formatToParts(cursor).map(x=>[x.type,x.value]));
-   if(p.hour+':'+p.minute!==at)continue;
-   const d=Number(p.day),m=Number(p.month),y=Number(p.year);
-   const weekday=new Date(Date.UTC(y,m-1,d)).getUTCDay()||7;
-   if(kind==='daily'||(kind==='weekly'&&weekday===Number(values.get('weekday')))||(kind==='first'&&d===1)||(kind==='monthly'&&d===Number(values.get('day')))||(kind==='last'&&d===new Date(Date.UTC(y,m,0)).getUTCDate())){next=cursor;break;}
-  }
- }
- if(!next)return 'Não foi possível calcular a ocorrência de exemplo.';
- form.querySelector('.gu-next').textContent='Próxima consulta de exemplo '+fmt.format(next)+' ('+zone+')';
- const backup=form.elements.backup_email.selectedOptions[0].textContent;
- return 'Preferências simuladas. E-mail sobre backups: '+backup+'.';
-}
-document.addEventListener('click',event=>{const link=event.target.closest('a[href*="?aba=backups"]');if(link){event.preventDefault();location.hash='backups';}});
-document.addEventListener('submit',e=>{e.preventDefault();let reply=e.target.querySelector('[role=status]');if(!reply){reply=document.createElement('p');reply.setAttribute('role','status');reply.className='gu-msg';e.target.append(reply);}let op=new FormData(e.target).get('op');
- if(op==='upload'||op==='download'){
-  const area=e.target.closest('.gu-workspace');
-  const copy=document.getElementById('ready-'+op).content.cloneNode(true);
-  area.replaceWith(copy);
-  return;
- }
- reply.textContent=op==='backup'?'Backup simulado. O exemplo não criou arquivos nem interrompeu o GLPI.':op==='settings'?demoSchedule(e.target):op==='check'?'Consulta simulada. Versão disponível: 12.0.2.':'Aprovação simulada. Nenhuma atualização foi iniciada.';});
-
-</script><script>
-document.addEventListener('submit', event => {
-  const form=event.target;
-  if (!form.closest('.gu-backups')) return;
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  const data=new FormData(form);
-  const op=event.submitter?.getAttribute('name')==='op'?event.submitter.value:data.get('op');
-  let output=form.querySelector('[role=status]');
-  if (!output) {
-    output=document.createElement('p');
-    output.setAttribute('role','status');
-    form.append(output);
-  }
-  if ((op==='bdelete'||op==='brestore') && data.get('typed')!==data.get('ref')) {
-    output.textContent='O identificador digitado precisa corresponder ao da cópia.';
-    return;
-  }
-  const replies={btest:'Teste de conexão simulado.',bsave:'Política confirmada na demonstração.',backup:'Criação de backup simulada.',bprune:'Limpeza da prévia simulada.',bfetch:'O plugin instalado entrega um TAR com o banco, os arquivos e os manifestos.',bdelete:'Exclusão confirmada na demonstração.',brestore:'Restauração confirmada na demonstração.',bretry:'Reenvio simulado.'};
-  output.textContent=replies[op];
-},true);
 </script></body></html>

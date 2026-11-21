@@ -1,4 +1,4 @@
-# Atualizações do GLPI 1.0.7
+# Atualizações do GLPI 1.0.8
 
 Plugin em português para instalações Linux pelo pacote oficial .tgz do ramo GLPI 12.0.x em um único servidor com systemd e uma conexão primária MySQL ou MariaDB. O Super-Admin revisa a versão, o changelog e a urgência antes de aprovar a instalação. O serviço consulta versões diariamente por padrão. Na aba Notificações, o modo Simples permite escolher de 1 a 168 horas. O modo Avançado usa o horário e o fuso escolhidos para consultar diariamente, em um dia da semana, no primeiro ou último dia de cada mês ou em um dia do mês de 1 a 31. O painel e o e-mail podem ser habilitados de forma independente.
 
@@ -54,7 +54,7 @@ sudo python3 /usr/local/lib/glpi-secureupdate/agent.py doctor
 6. Clique em **Atualizar estado** para ver o resultado. A preparação confere o tamanho e o SHA-256, sem interromper o GLPI. Ao concluir, o painel apresenta versão, origem, tamanho e resumo SHA-256. Cada nova preparação invalida a anterior. O mesmo Super-Admin pode aprovar enquanto a consulta e a verificação tiverem menos de 24 horas.
 7. Durante a janela de manutenção, marque a autorização e clique em **Aprovar atualização**. O serviço revalida a release e verifica novamente os bytes já guardados no servidor antes de entrar em manutenção. Se houver falha antes da reabertura, essa autorização cobre o rollback. Após a reabertura, uma reversão exige nova aprovação.
 
-## Atualizar o próprio SecureUpdate de 1.0.5 ou 1.0.6 para 1.0.7
+## Atualizar o próprio SecureUpdate das versões 1.0.5 a 1.0.7 para 1.0.8
 
 O instalador do pacote faz a instalação inicial e recusa sobrescrever uma instalação existente. Para atualizar o plugin já instalado, extraia a nova versão fora do site. Em homologação, confira os PHPs com o mesmo PHP CLI da instalação e execute os testes.
 
