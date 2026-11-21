@@ -127,7 +127,7 @@
 <nav class="gu-actions" aria-label="Páginas do catálogo">{% if offset %}<a href="{{ panel_url }}?aba=backups&amp;offset={{ prev_offset }}">Anterior</a>{% endif %}{% if next_offset < vault.total %}<a href="{{ panel_url }}?aba=backups&amp;offset={{ next_offset }}">Próxima página</a>{% endif %}</nav>
 {% endif %}</section>
 {% elseif tab == 'saude' %}
-<section class="gu-detail"><h2>Último healthcheck</h2>{% if health_rows %}<dl>{% for row in health_rows %}<div><dt>{{ row.name }}</dt><dd>{{ row.value }}</dd></div>{% endfor %}</dl>{% else %}<p>Ainda não há resultado de healthcheck disponível.</p>{% endif %}</section>
+<section class="gu-detail"><h2>Último healthcheck</h2><p>O diagnóstico completo e sua pontuação são fornecidos pelo <a href="https://github.com/JoaoPauloSCosta/glpi-health-check">GLPI Health Check</a>, plugin de terceiros de João Paulo S. Costa, licenciado sob a GPLv3 ou posterior. O SecureUpdate compara os resultados e apresenta as regressões.</p>{% if health_rows %}<dl>{% for row in health_rows %}<div><dt>{{ row.name }}</dt><dd>{{ row.value }}</dd></div>{% endfor %}</dl>{% else %}<p>Ainda não há resultado de healthcheck disponível.</p>{% endif %}</section>
 {% elseif tab == 'notificacoes' and connected %}
 <section class="gu-detail"><h2>Notificações de atualização</h2>
 <form method="post" class="gu-schedule">

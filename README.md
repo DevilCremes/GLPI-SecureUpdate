@@ -1,9 +1,17 @@
 # GLPI-SecureUpdate
-Plugin para GLPI 12.0.x em Linux que reúne atualizações aprovadas pelo Super-Admin, verificação SHA-256 do pacote oficial, healthcheck e rollback. Permite agendar backups locais, em NAS ou na nuvem, gerenciar a retenção e receber resultados por e-mail.
+Plugin para GLPI 12.0.x em Linux que reúne atualizações aprovadas pelo Super-Admin, verificação SHA-256 do pacote oficial, integração com o GLPI Health Check de João Paulo S. Costa e rollback. Permite agendar backups locais, em NAS ou na nuvem, gerenciar a retenção e receber resultados por e-mail.
 
 O SecureUpdate é um plugin em português para administrar atualizações e backups do **GLPI 12.0.x em Linux**. No próprio GLPI, o Super-Admin pode consultar o que mudou em uma versão, verificar o pacote oficial e aprovar a instalação. A consulta por novas versões pode ser agendada. **Toda atualização exige aprovação explícita.**
 
 [Baixar a prévia interativa do painel](https://raw.githubusercontent.com/DevilCremes/GLPI-SecureUpdate/main/docs/previa-secureupdate.html)
+
+## Créditos ao GLPI Health Check
+
+**GLPI Health Check** é um plugin independente de **João Paulo S. Costa** ([@JoaoPauloSCosta](https://github.com/JoaoPauloSCosta)). O autor desenvolveu o mecanismo que analisa a instalação do GLPI, atribui uma pontuação de saúde e registra os achados de cada execução. O projeto original declara **Copyright © 2026 João Paulo S. Costa** e adota a licença **GNU GPL, versão 3 ou posterior** (`GPL-3.0-or-later`). [Documentação do autor em português](https://github.com/JoaoPauloSCosta/glpi-health-check/blob/main/README.pt_BR.md) · [Declaração de autoria](https://github.com/JoaoPauloSCosta/glpi-health-check/blob/c08d653fddc0c01d35137d87bfa0e10a47dfe520/setup.php) · [Licença do projeto original](https://github.com/JoaoPauloSCosta/glpi-health-check/blob/c08d653fddc0c01d35137d87bfa0e10a47dfe520/LICENSE)
+
+O Health Check é instalado e atualizado separadamente a partir do [repositório original](https://github.com/JoaoPauloSCosta/glpi-health-check). O pacote do SecureUpdate contém o código de integração. Para executar o diagnóstico completo, ele chama o `Runner` do Health Check e lê a pontuação, o identificador da execução e o resultado de cada verificação por meio de `RunRepository`.
+
+O **SecureUpdate** compara esses resultados antes e depois da migração. Também consulta o estado nativo do GLPI, verifica o esquema do banco e testa o acesso HTTP após a reabertura. O gerenciamento do backup, da janela de manutenção e do rollback pertence ao SecureUpdate. Assim, na aba **Saúde**, a pontuação do diagnóstico é creditada ao Health Check de João Paulo S. Costa. A indicação de regressão decorre da comparação feita pelo SecureUpdate.
 
 ## Como funciona uma atualização
 
