@@ -18,7 +18,7 @@ def report(panel,transaction,last):
     checked=plan.get("checked") if isinstance(plan,dict) else None
     return {
         "Serviço local":"Conectado",
-        "Versão do executor":"1.1.0",
+        "Versão do executor":"1.2.0",
         "Estado do trabalho":phase if isinstance(phase,str) and phase in PHASES else "Indeterminado",
         "Identificador":job if isinstance(job,str) and re.fullmatch("[0-9a-f]{16}",job) else "Sem trabalho",
         "Etapa da transação":step if isinstance(step,str) and step in STEPS else ("Revisão necessária" if transaction else "Nenhuma em andamento"),

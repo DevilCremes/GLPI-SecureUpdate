@@ -20,7 +20,7 @@ Se o instalador encontrar permissões incompatíveis na raiz do GLPI ou em `plug
 
 Confira a conta PHP e a lista de serviços sugeridas pelo instalador. Ao concluir, entre no GLPI com o perfil **Super-Admin** e abra **Configurar → Plugins → Atualizações do GLPI**.
 
-Para **apenas conferir a detecção**, substitua a última linha do bloco por `sudo python3 instalar.py --detectar`. Se o SecureUpdate já estiver instalado, siga o [procedimento para atualizar o próprio plugin](./LEIA-ME.md#atualizar-o-próprio-secureupdate-da-série-10-para-110).
+Para **apenas conferir a detecção**, substitua a última linha do bloco por `sudo python3 instalar.py --detectar`. Se o SecureUpdate já estiver instalado, siga o [procedimento para atualizar o próprio plugin](./LEIA-ME.md#atualizar-o-próprio-secureupdate).
 
 O SecureUpdate é um plugin em português para administrar atualizações e backups do **GLPI 10.0.x, 11.0.x e 12.0.x em Linux**. No próprio GLPI, o Super-Admin pode consultar o que mudou em uma versão, verificar o pacote oficial e aprovar a instalação. A consulta por novas versões pode ser agendada. **Toda atualização exige aprovação explícita.**
 
@@ -53,7 +53,7 @@ Se a migração ou o diagnóstico falhar antes da reabertura, o executor tenta r
 ## Backups independentes das atualizações
 
 - **Criação e agendamento.** Execute uma cópia sob demanda ou programe uma janela diária, semanal ou mensal, com horário e fuso. É possível escolher, por exemplo, toda segunda-feira, todo dia 7 ou o último dia do mês.
-- **Destinos.** Salve no servidor, em outro disco, em um NAS ou na nuvem. O administrador Linux configura os destinos adicionais com rclone. Pelo painel, o Super-Admin escolhe e testa a conexão. Se a transferência falhar, a cópia local fica disponível para reenvio.
+- **Destinos.** Salve no servidor, em outro disco, em um NAS ou na nuvem. Em **Backups → Destinos de backup**, o Super-Admin cadastra uma pasta local, um NAS SMB ou um bucket S3 e escolhe a subpasta de cada destino. O executor testa a conexão antes de liberar o destino na política. Perfis rclone provisionados no Linux também são aceitos. Se a transferência falhar, a cópia local fica disponível para reenvio.
 - **Catálogo e restauração.** Consulte, baixe, restaure ou exclua cópias. A restauração verifica os hashes, exige a mesma versão e estrutura de diretórios do GLPI e cria um ponto de segurança com os dados em uso antes da troca.
 - **Retenção.** Combine quantidade e idade. Por exemplo, preserve as sete cópias mais recentes e todas as dos últimos 30 dias. O painel mostra os candidatos à exclusão. A limpeza automática é opcional e preserva os pontos de rollback das atualizações.
 

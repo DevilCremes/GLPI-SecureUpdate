@@ -263,7 +263,7 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
 
 
 
-<dl class="gu-strip"><div><dt>Cópias</dt><dd>1</dd></div><div><dt>Destino</dt><dd>nas</dd></div><div><dt>Próximo backup</dt><dd>23/11 02:00</dd></div></dl>
+<dl class="gu-strip"><div><dt>Cópias</dt><dd>1</dd></div><div><dt>Destino</dt><dd>NAS da TI</dd></div><div><dt>Próximo backup</dt><dd>23/11 02:00</dd></div></dl>
 
 <div class="gu-ledger">
 <h2 class="gu-ledger-title">Armazenamento e cópias</h2>
@@ -284,12 +284,67 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
 
 <nav class="gu-actions" aria-label="Páginas do catálogo"></nav>
 </section>
+<section class="gu-pane" id="gu-destinos" data-label="Destinos de backup">
+<h2>Destinos de backup</h2>
+<dl><dt>Servidor · Local</dt><dd><code>/var/lib/glpi-secureupdate/backups/manuais</code></dd><dt>NAS da TI · NAS</dt><dd><code>nas.exemplo.local / TI/glpi</code></dd><dt>S3 · Nuvem</dt><dd><code>Amazon S3 / backup-glpi/producao</code></dd></dl>
+<p>Cadastre um destino e teste se o executor consegue gravar, ler e excluir um arquivo nele. Depois, selecione o destino em <a href="#gu-politica">Destino, agendamento e retenção</a>.</p>
+
+<details class="gu-note"><summary>Pasta local</summary>
+<form method="post" autocomplete="off"><fieldset >
+<input type="hidden" name="approval_token" value="demo">
+<input type="hidden" name="op" value="bregister"><input type="hidden" name="kind" value="local">
+<label>Nome do destino <input class="form-control" name="label" maxlength="80" required></label>
+
+<label>Diretório base no servidor <select class="form-select" name="base"><option value="local">/var/lib/glpi-secureupdate/pastas-locais</option><option value="disco">/srv/glpi-backups</option></select></label>
+<label>Subpasta <input class="form-control" name="folder" placeholder="financeiro/diarios" maxlength="400" required></label>
+<small>Subpastas novas são criadas no diretório escolhido. Para outro disco, o administrador Linux pode habilitar uma base adicional.</small>
+
+
+<p><button class="btn btn-primary" name="confirm" value="yes">Testar e cadastrar</button></p>
+</fieldset></form></details>
+
+<details class="gu-note"><summary>NAS (SMB)</summary>
+<form method="post" autocomplete="off"><fieldset >
+<input type="hidden" name="approval_token" value="demo">
+<input type="hidden" name="op" value="bregister"><input type="hidden" name="kind" value="nas">
+<label>Nome do destino <input class="form-control" name="label" maxlength="80" required></label>
+
+<label>Servidor SMB <input class="form-control" name="server" placeholder="nas.exemplo.local" required></label>
+<label>Compartilhamento <input class="form-control" name="share" placeholder="Backups" required></label>
+<label>Pasta dentro do compartilhamento <input class="form-control" name="folder" placeholder="glpi/producao" maxlength="400"></label>
+<label>Usuário do NAS <input class="form-control" name="user" required></label>
+<label>Domínio ou grupo de trabalho <input class="form-control" name="domain" placeholder="WORKGROUP"></label>
+<label>Senha do NAS <input class="form-control" type="password" disabled placeholder="Somente demonstração" name="password" autocomplete="new-password" required></label>
+
+<small>Deixe a pasta vazia para usar a raiz do compartilhamento.</small>
+<p><button class="btn btn-primary" name="confirm" value="yes">Testar e cadastrar</button></p>
+</fieldset></form></details>
+
+<details class="gu-note"><summary>Nuvem (S3)</summary>
+<form method="post" autocomplete="off"><fieldset >
+<input type="hidden" name="approval_token" value="demo">
+<input type="hidden" name="op" value="bregister"><input type="hidden" name="kind" value="cloud">
+<label>Nome do destino <input class="form-control" name="label" maxlength="80" required></label>
+
+<label>Endpoint HTTPS <input class="form-control" type="url" name="endpoint" placeholder="https://s3.exemplo.com"></label>
+<small>Para Amazon S3, deixe o endpoint vazio.</small>
+<label>Região <input class="form-control" name="region" placeholder="sa-east-1" required></label>
+<label>Bucket <input class="form-control" name="bucket" required></label>
+<label>Pasta dentro do bucket <input class="form-control" name="folder" placeholder="glpi/producao" maxlength="400"></label>
+<label>Chave de acesso <input class="form-control" name="access_key" disabled placeholder="Somente demonstração"></label>
+<label>Chave secreta <input class="form-control" type="password" disabled placeholder="Somente demonstração" name="secret_key" autocomplete="new-password" required></label>
+
+<small>Deixe a pasta vazia para usar a raiz do bucket.</small>
+<p><button class="btn btn-primary" name="confirm" value="yes">Testar e cadastrar</button></p>
+</fieldset></form></details>
+
+</section>
 <section class="gu-pane" id="gu-politica" data-label="Destino, agendamento e retenção">
 <h2>Destino, agendamento e retenção</h2>
 <form method="post" class="gu-bpolicy"><fieldset >
 <input type="hidden" name="op" value="bsave"><input type="hidden" name="approval_token" value="demo">
 <label>Salvar em <select class="form-select" name="destination"><option value="local" >Servidor · Local</option><option value="nas" selected>NAS da TI · NAS</option><option value="nuvem" >S3 · Nuvem</option></select></label>
-<small>Os destinos locais, NAS e nuvem são cadastrados no servidor Linux.</small>
+<small><a href="#gu-destinos">Cadastrar pasta local, NAS ou nuvem</a></small>
 <label class="gu-choice"><input class="form-check-input" name="enabled" type="checkbox" checked> Agendar backups com janela de manutenção</label>
 <div class="gu-bcalendar">
 <label>Frequência <select class="form-select" name="kind"><option value="daily" >Diariamente</option><option value="weekly" selected>Semanalmente</option><option value="monthly" >Dia do mês</option><option value="first" >Primeiro dia do mês</option><option value="last" >Último dia do mês</option></select></label>

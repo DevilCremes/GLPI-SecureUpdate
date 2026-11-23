@@ -12,7 +12,7 @@ OPERATIONS = {
     "backup": "Backup manual", "scheduled_backup": "Backup agendado", "bretry": "Reenvio ao destino",
     "brestore": "Restauração de backup", "bprune": "Limpeza por retenção",
     "btest": "Teste do destino", "bdelete": "Exclusão de backup",
-    "bfetch": "Download de backup", "bsave": "Configuração dos backups",
+    "bregister": "Cadastro de destino", "bfetch": "Download de backup", "bsave": "Configuração dos backups",
     "missed": "Backup agendado", "before_update": "Backup antes da atualização",
     "before_rollback": "Backup antes do rollback",
 }

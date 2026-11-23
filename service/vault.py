@@ -11,7 +11,8 @@ import tarfile
 import tempfile
 import time
 
-from common import CONF, read, require, run, syncdir, write
+import backup_destinations as profiles
+from common import CONF, STATE, read, require, run, syncdir, write
 import schedule
 
 FILES = ("database.sql", "files.tar", "SHA256SUMS", "resumo.json")
@@ -21,7 +22,7 @@ LOCAL = {"label":"Neste servidor","type":"local"}
 POLICY = "backup-policy.json"
 
 
-def destinations():
+def presets():
     from engine import trusted
     path = CONF.parent / "destinations.json"
     result = {"local":LOCAL}
@@ -40,6 +41,22 @@ def destinations():
                         "Configure um prefixo exclusivo do rclone.")
             result[alias]=spec
     return result
+
+
+def destinations():
+    result = presets()
+    directory = STATE / profiles.DIRECTORY
+    if directory.is_dir():
+        for entry in sorted(directory.iterdir()):
+            if profiles.PROFILE.fullmatch(entry.name):
+                require(entry.name not in result, "Conflito de alias de armazenamento.")
+                result[entry.name] = read(entry / "spec.json")
+    return result
+
+
+def register_destination(host, job, options):
+    profiles.register(STATE, host, "dest-" + job, options, presets(), destinations(), check_destination)
+
 
 
 def catalog(state):
@@ -85,7 +102,7 @@ def remote(spec, key, name):
     return spec["target"].rstrip("/")+"/"+key+"/"+name
 
 
-def transport(spec, *args, **kw):
+def transport(spec, *args, profile_path=None, **kw):
     from engine import trusted
     cfg="/dev/null"
     if spec["type"]=="local":
@@ -94,12 +111,15 @@ def transport(spec, *args, **kw):
         require(not path.stat().st_mode & 0o077,"O diretório de destino deve ser privado de root.")
     else:
         cfg=CONF.parent/"rclone.conf"
+        if "profile" in spec:
+            require(profiles.PROFILE.fullmatch(spec["profile"]), "Perfil de armazenamento inválido.")
+            cfg = profile_path or STATE / profiles.DIRECTORY / spec["profile"] / "rclone.conf"
         trusted(cfg,False)
         require(not cfg.stat().st_mode & 0o077,"Proteja rclone.conf com modo 0600.")
     return run(["rclone","--config",str(cfg),"--retries","2","--contimeout","15s","--timeout","2m",*args],**kw)
 
 
-def check_destination(spec,state):
+def check_destination(spec,state, *, profile_path=None):
     if spec==LOCAL:
         with tempfile.TemporaryFile(dir=state) as probe:
             data=os.urandom(32)
@@ -113,11 +133,11 @@ def check_destination(spec,state):
         probe=Path(tmp)/"probe"
         probe.write_bytes(os.urandom(32))
         target=remote(spec,".secureupdate-test",os.urandom(12).hex())
-        transport(spec,"copyto",probe,target)
+        transport(spec,"copyto",probe,target,profile_path=profile_path,stderr=subprocess.DEVNULL)
         try:
-            require(transport(spec,"cat",target,stdout=subprocess.PIPE).stdout==probe.read_bytes(),"Leitura de teste divergente.")
+            require(transport(spec,"cat",target,stdout=subprocess.PIPE,profile_path=profile_path,stderr=subprocess.DEVNULL).stdout==probe.read_bytes(),"Leitura de teste divergente.")
         finally:
-            transport(spec,"deletefile",target)
+            transport(spec,"deletefile",target,profile_path=profile_path,stderr=subprocess.DEVNULL)
 
 
 def verify(d, sums):
@@ -216,13 +236,23 @@ def preview(rows,policy):
     return keys,digest
 
 
+def location(spec, state):
+    if spec == LOCAL:
+        return str(state / "backups" / "manuais")
+    if "server" in spec:
+        return spec["server"] + " / " + spec["target"].partition(":")[2]
+    return spec["target"]
+
+
 def public_state(state,offset=0):
     rows=catalog(state)
     policy=read(state/POLICY,DEFAULT)
     keys,digest=preview(rows,policy)
     return {"items":[{k:v for k,v in r.items() if k in ("id","time","version","size","path","destination","pending","deleting")}
                     for r in rows[offset:offset+25]],"total":len(rows),"policy":policy,"candidates":keys[offset:offset+25],
+            "bases":[{"id":k,"path":str(v)} for k,v in profiles.local_bases(state,presets()).items()],
             "count":len(keys),"digest":digest,"destinations":[{"id":key,"label":spec["label"],"type":spec["type"],
+                                                    "location":location(spec,state),
                                                     "type_label":{"local":"Local","nas":"NAS","cloud":"Nuvem"}[spec["type"]]}
                                                       for key,spec in destinations().items()]}
 

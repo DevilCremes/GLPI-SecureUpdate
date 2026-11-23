@@ -30,7 +30,7 @@ BASE={"backup_email":"off","phase":"disponível","hours":24,"browser":True,"emai
 SELF=Path(__file__).resolve()
 
 
-BACKUP_OPS={"backup","bsave","btest","bdelete","brestore","bfetch","bprune","bretry"}
+BACKUP_OPS={"backup","bsave","btest","bdelete","brestore","bfetch","bprune","bretry","bregister"}
 
 
 class Agent:
@@ -111,6 +111,7 @@ class Agent:
             self.checkpoint_notice(j["id"])
         if j["op"] in BACKUP_OPS:
             labels={"backup":"Backup criado e verificado.","bsave":"Política de backup salva.",
+                    "bregister":"Destino testado e cadastrado. Selecione-o na política de backup.",
                     "btest":"O destino confirmou a gravação, a leitura e a exclusão de teste.",
                     "bdelete":"Backup excluído.","bprune":"Limpeza concluída.",
                     "brestore":"Restauração concluída.","bretry":"Cópia enviada e verificada.",
@@ -172,7 +173,7 @@ class Agent:
         topic="scheduled_backup" if scheduled else op
         if scheduled:
             request["scheduled"]=True
-        if options is not None and op != "check":
+        if options is not None and op not in ("check", "bregister"):
             request["options"]=options
         if op=="check":
             request["scope"] = options or "same"
@@ -193,9 +194,16 @@ class Agent:
                 plan, prepared = {}, {}
             self.save(plan=plan,next=due,job=job,phase=phases.get(op,"gerenciando backups"),error="",actor=actor,prepared=prepared,
                       active_backup={"id":job,"op":topic} if op in BACKUP_OPS else None)
-            with (STATE/("job-"+job+".log")).open("xb") as log:
+            with contextlib.ExitStack() as stack:
+                log = stack.enter_context((STATE/("job-"+job+".log")).open("xb"))
+                child_input = channel if op in ("upload","bfetch") else subprocess.DEVNULL
+                if op == "bregister":
+                    # Credentials live only in this anonymous Linux descriptor until the child exits.
+                    child_input = stack.enter_context(os.fdopen(os.memfd_create("cadastro"), "w+b"))
+                    child_input.write(json.dumps(options).encode("ascii"))
+                    child_input.seek(0)
                 self.process=subprocess.Popen([sys.executable,"-E","-s",str(SELF),"job",job],
-                    cwd=SELF.parent,stdin=channel if op in ("upload","bfetch") else subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,close_fds=True)
+                    cwd=SELF.parent,stdin=child_input,stdout=log,stderr=subprocess.STDOUT,close_fds=True)
             self.running_job=request
         except OSError:
             ticket.unlink(missing_ok=True)
@@ -209,7 +217,7 @@ class Agent:
         op=req.get("op")
         fields={"backups":set(),"backup":{"actor","confirm"},"debug":set(),"notice":set(),"status":set(),"check":{"actor"},"settings":{"actor","hours","browser","email"},
                 "download":{"actor","ref"},"upload":{"actor","ref","size"},"apply":{"actor","ref"},"rollback":{"actor","ref"}}
-        fields.update(bsave={"actor","options","confirm"},btest={"actor","ref"},bdelete={"actor","ref","confirm"},
+        fields.update(bregister={"actor","options","confirm"},bsave={"actor","options","confirm"},btest={"actor","ref"},bdelete={"actor","ref","confirm"},
                       brestore={"actor","ref","confirm"},bfetch={"actor","ref"},bprune={"actor","ref","confirm"},bretry={"actor","ref"})
         if op=="check" and "scope" in req:
             fields[op] = {"actor","scope"}
@@ -247,7 +255,7 @@ class Agent:
             require(req["confirm"] is True,"Confirme a manutenção para criar o backup.")
             self.start("backup",req["actor"])
         elif op in BACKUP_OPS:
-            if op in ("bsave","bdelete","brestore","bprune"):
+            if op in ("bsave","bdelete","brestore","bprune","bregister"):
                 require(req["confirm"] is True,"Confirmação necessária.")
             ref=req.get("ref","")
             if op in ("bfetch","bdelete","brestore","bretry"):
@@ -319,8 +327,8 @@ class Agent:
                         pid,uid,gid=struct.unpack("3i",conn.getsockopt(socket.SOL_SOCKET,socket.SO_PEERCRED,12))
                         require(uid==self.uid,"Usuário Unix não autorizado.")
                         conn.settimeout(2)
-                        with conn.makefile("rb") as f: line=f.readline(2049)
-                        require(len(line)<=2048 and line.endswith(b"\n"),"Mensagem incompleta.")
+                        with conn.makefile("rb") as f: line=f.readline(16385)
+                        require(len(line)<=16384 and line.endswith(b"\n"),"Mensagem incompleta.")
                         req=json.loads(line)
                         result=self.dispatch(req,conn)
                         if req["op"]=="bfetch":
@@ -382,7 +390,17 @@ def record_backup_failure(job,exc):
 def backup_job(host,j):
     op=j["op"]
     policy=read(STATE/vault.POLICY,vault.DEFAULT)
-    if op=="bsave":
+    if op=="bregister":
+        try:
+            vault.register_destination(host, j["id"], json.load(sys.stdin))
+        except Exception as exc:
+            from backup_destinations import RegistrationError
+            reason = "O teste do destino falhou. Confira o caminho, as permissões, as credenciais e a instalação do rclone."
+            if isinstance(exc, RegistrationError):
+                reason = str(exc)
+            write(STATE/"backup-attention.json", {"job":j["id"], "level":"error", "message":reason})
+            raise ValueError(reason) from None
+    elif op=="bsave":
         vault.configure(STATE,j["options"],j["actor"])
     elif op=="btest":
         vault.check_destination(vault.destinations()[j["ref"]],STATE)
@@ -391,7 +409,10 @@ def backup_job(host,j):
         spec=vault.destinations()[dest]
         if spec["type"]=="local" and "target" in spec:
             path=Path(spec["target"])
-            require(not any(path==p or p in path.parents or path in p.parents for p in [host.app,*host.ext,STATE]),
+            from backup_destinations import LOCAL_ROOT, overlap
+            private_folder = "profile" in spec and STATE / LOCAL_ROOT in path.parents
+            require(not any(overlap(path, p) for p in [host.app, *host.ext])
+                    and (private_folder or not overlap(path, STATE)),
                     "Destino sobreposto à instalação.")
         vault.check_destination(spec,STATE)
         folder=security_backup(host,j["id"],dest,spec if dest!="local" else None)

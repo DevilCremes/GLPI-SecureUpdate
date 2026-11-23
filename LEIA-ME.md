@@ -1,4 +1,4 @@
-# Atualizações do GLPI 1.1.0
+# Atualizações do GLPI 1.2.0
 
 Plugin em português para instalações Linux pelo pacote oficial .tgz dos ramos GLPI 10.0.x, 11.0.x e 12.0.x em um único servidor com systemd e uma conexão primária MySQL ou MariaDB. O Super-Admin revisa a versão, o changelog e a urgência antes de aprovar a instalação. O serviço consulta versões diariamente por padrão. Na aba Notificações, o modo Simples permite escolher de 1 a 168 horas. O modo Avançado usa o horário e o fuso escolhidos para consultar diariamente, em um dia da semana, no primeiro ou último dia de cada mês ou em um dia do mês de 1 a 31. O painel e o e-mail podem ser habilitados de forma independente.
 
@@ -89,7 +89,7 @@ sudo python3 /usr/local/lib/glpi-secureupdate/agent.py doctor
 6. Clique em **Atualizar estado** para ver o resultado. A preparação confere o tamanho e o SHA-256, sem interromper o GLPI. Ao concluir, o painel apresenta versão, origem, tamanho e resumo SHA-256. Cada nova preparação invalida a anterior. O mesmo Super-Admin pode aprovar enquanto a consulta e a verificação tiverem menos de 24 horas.
 7. Durante a janela de manutenção, marque a autorização e clique em **Aprovar atualização**. O serviço revalida a release e verifica novamente os bytes já guardados no servidor antes de entrar em manutenção. Se houver falha antes da reabertura, essa autorização cobre o rollback. Após a reabertura, uma reversão exige nova aprovação.
 
-## Atualizar o próprio SecureUpdate da série 1.0 para 1.1.0
+## Atualizar o próprio SecureUpdate
 
 O instalador do pacote faz a instalação inicial e recusa sobrescrever uma instalação existente. Para atualizar o plugin já instalado, extraia a nova versão fora do site. Em homologação, confira os PHPs com o mesmo PHP CLI da instalação e execute os testes.
 
@@ -115,10 +115,16 @@ A cópia reúne banco, instalação, configurações, anexos e diretórios exter
 | --- | --- |
 | Neste servidor | Disponível ao instalar. O conteúdo permanece junto ao catálogo privado de root. |
 | Outro diretório local | Instale rclone. Crie um diretório exclusivo, fora do GLPI e do estado do serviço, de propriedade de root e modo 0700. |
-| NAS | Instale rclone e configure um perfil para o compartilhamento SMB ou SFTP, limitado à pasta de backup. Para SFTP, configure a verificação da chave do servidor com known_hosts_file. |
-| Nuvem | Instale rclone e configure um perfil do provedor, por exemplo S3 ou armazenamento compatível, com um prefixo dedicado. Conceda acesso para listar, ler, escrever e remover nesse prefixo. |
+| NAS | Instale rclone. O painel cadastra compartilhamentos SMB. Para SFTP, provisione o perfil no Linux. Para SFTP, configure a verificação da chave do servidor com known_hosts_file. |
+| Nuvem | Instale rclone. O painel cadastra Amazon S3 e serviços compatíveis. Outros provedores usam perfis preparados no Linux. Conceda acesso para listar, ler, escrever e remover nesse prefixo. |
 
-O administrador do Linux provisiona os perfis. O painel oferece ao Super-Admin os destinos pelo nome. Crie `/etc/glpi-secureupdate/destinations.json` com aliases exclusivos. O exemplo apresenta três destinos opcionais.
+No painel **Backups → Destinos de backup**, abra **Pasta local**, **NAS (SMB)** ou **Nuvem (S3)**. Dê um nome ao destino. Para uma pasta local, selecione a base e informe a subpasta, por exemplo `producao/diarios`. A base padrão é `/var/lib/glpi-secureupdate/pastas-locais`. Um diretório local adicional declarado no arquivo abaixo também aparece como base. Para SMB, informe servidor, compartilhamento, usuário, senha e, opcionalmente, domínio. Para S3, informe bucket, região, chaves e, em provedores compatíveis, o endpoint HTTPS. Nos dois casos, escolha a pasta dentro do destino ou deixe-a vazia para usar a raiz.
+
+Clique em **Testar e cadastrar**. Após o teste de gravação, leitura e exclusão, atualize o estado do painel. Em **Destino, agendamento e retenção**, escolha o novo destino e clique em **Salvar política**. O cadastro não movimenta cópias anteriores. Use HTTPS no acesso administrativo ao GLPI e instale rclone no Linux para os destinos personalizados (com suporte a SMB ou S3 conforme o caso). O destino padrão **Neste servidor** continua disponível sem rclone. Os pontos de rollback da atualização continuam no armazenamento próprio do executor.
+
+O executor guarda perfis e credenciais em `/var/lib/glpi-secureupdate/destinos`, com acesso exclusivo de root. Inclua esse diretório na cópia protegida da configuração e do catálogo. O segredo S3 é armazenado no arquivo privado do rclone e a proteção de senha SMB do rclone é reversível. Restrinja as permissões das credenciais ao compartilhamento ou prefixo escolhido.
+
+Para provisionar destinos pelo Linux, incluindo SFTP e outros provedores do rclone, use a configuração a seguir. Crie `/etc/glpi-secureupdate/destinations.json` com aliases exclusivos. O exemplo apresenta três destinos opcionais.
 
 ```json
 {

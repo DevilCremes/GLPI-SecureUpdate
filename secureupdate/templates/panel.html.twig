@@ -89,7 +89,7 @@
 
 {% if connected and vault %}
 {% if backup_result %}<p role="status">{{ backup_result.message }} Trabalho <code>{{ backup_result.job }}</code>.</p>{% endif %}
-<dl class="gu-strip"><div><dt>Cópias</dt><dd>{{ vault.total }}</dd></div><div><dt>Destino</dt><dd>{{ policy.destination }}</dd></div><div><dt>Próximo backup</dt><dd>{{ backup_next|default('Agendamento desativado') }}</dd></div></dl>
+<dl class="gu-strip"><div><dt>Cópias</dt><dd>{{ vault.total }}</dd></div><div><dt>Destino</dt><dd>{% for d in vault.destinations %}{% if d.id == policy.destination %}{{ d.label }}{% endif %}{% endfor %}</dd></div><div><dt>Próximo backup</dt><dd>{{ backup_next|default('Agendamento desativado') }}</dd></div></dl>
 {% if busy %}<p role="status">Operação em andamento · {{ phase }}. <a href="{{ panel_url }}?aba=backups">Atualizar estado</a></p>{% endif %}
 <div class="gu-ledger">
 <h2 class="gu-ledger-title">Armazenamento e cópias</h2>
@@ -110,12 +110,47 @@
 {% if not vault.total %}<p>Ainda não há backups concluídos.</p>{% endif %}
 <nav class="gu-actions" aria-label="Páginas do catálogo">{% if offset %}<a href="{{ panel_url }}?aba=backups&amp;offset={{ prev_offset }}">Anterior</a>{% endif %}{% if next_offset < vault.total %}<a href="{{ panel_url }}?aba=backups&amp;offset={{ next_offset }}">Próxima página</a>{% endif %}</nav>
 </section>
+<section class="gu-pane" id="gu-destinos" data-label="Destinos de backup">
+<h2>Destinos de backup</h2>
+<dl>{% for d in vault.destinations %}<dt>{{ d.label }} · {{ d.type_label }}</dt><dd><code>{{ d.location }}</code></dd>{% endfor %}</dl>
+<p>Cadastre um destino e teste se o executor consegue gravar, ler e excluir um arquivo nele. Depois, selecione o destino em <a href="#gu-politica">Destino, agendamento e retenção</a>.</p>
+{% for kind, title in {'local':'Pasta local', 'nas':'NAS (SMB)', 'cloud':'Nuvem (S3)'} %}
+<details class="gu-note"><summary>{{ title }}</summary>
+<form method="post" autocomplete="off"><fieldset {% if busy %}disabled{% endif %}>
+<input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}">
+<input type="hidden" name="op" value="bregister"><input type="hidden" name="kind" value="{{ kind }}">
+<label>Nome do destino <input class="form-control" name="label" maxlength="80" required></label>
+{% if kind == 'local' %}
+<label>Diretório base no servidor <select class="form-select" name="base">{% for base in vault.bases %}<option value="{{ base.id }}">{{ base.path }}</option>{% endfor %}</select></label>
+<label>Subpasta <input class="form-control" name="folder" placeholder="financeiro/diarios" maxlength="400" required></label>
+<small>Subpastas novas são criadas no diretório escolhido. Para outro disco, o administrador Linux pode habilitar uma base adicional.</small>
+{% elseif kind == 'nas' %}
+<label>Servidor SMB <input class="form-control" name="server" placeholder="nas.exemplo.local" required></label>
+<label>Compartilhamento <input class="form-control" name="share" placeholder="Backups" required></label>
+<label>Pasta dentro do compartilhamento <input class="form-control" name="folder" placeholder="glpi/producao" maxlength="400"></label>
+<label>Usuário do NAS <input class="form-control" name="user" required></label>
+<label>Domínio ou grupo de trabalho <input class="form-control" name="domain" placeholder="WORKGROUP"></label>
+<label>Senha do NAS <input class="form-control" type="password" name="password" autocomplete="new-password" required></label>
+{% else %}
+<label>Endpoint HTTPS <input class="form-control" type="url" name="endpoint" placeholder="https://s3.exemplo.com"></label>
+<small>Para Amazon S3, deixe o endpoint vazio.</small>
+<label>Região <input class="form-control" name="region" placeholder="sa-east-1" required></label>
+<label>Bucket <input class="form-control" name="bucket" required></label>
+<label>Pasta dentro do bucket <input class="form-control" name="folder" placeholder="glpi/producao" maxlength="400"></label>
+<label>Chave de acesso <input class="form-control" name="access_key" required></label>
+<label>Chave secreta <input class="form-control" type="password" name="secret_key" autocomplete="new-password" required></label>
+{% endif %}
+{% if kind != 'local' %}<small>Deixe a pasta vazia para usar a raiz do {% if kind == 'nas' %}compartilhamento{% else %}bucket{% endif %}.</small>{% endif %}
+<p><button class="btn btn-primary" name="confirm" value="yes">Testar e cadastrar</button></p>
+</fieldset></form></details>
+{% endfor %}
+</section>
 <section class="gu-pane" id="gu-politica" data-label="Destino, agendamento e retenção">
 <h2>Destino, agendamento e retenção</h2>
 <form method="post" class="gu-bpolicy"><fieldset {% if busy %}disabled{% endif %}>
 <input type="hidden" name="op" value="bsave"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}">
-<label>Salvar em <select class="form-select" name="destination">{% for d in vault.destinations %}<option value="{{ d.id }}" {% if d.id == policy.destination %}selected{% endif %}>{{ d.label }} · {{ d.type_label }}</option>{% endfor %}</select></label>
-<small>Os destinos locais, NAS e nuvem são cadastrados no servidor Linux.</small>
+<label>Salvar em <select class="form-select" name="destination">{% for d in vault.destinations %}<option value="{{ d.id }}" {% if d.id == policy.destination %}selected{% endif %}>{{ d.label }} · {{ d.type_label }} · {{ d.location }}</option>{% endfor %}</select></label>
+<small><a href="#gu-destinos">Cadastrar pasta local, NAS ou nuvem</a></small>
 <label class="gu-choice"><input class="form-check-input" name="enabled" type="checkbox" {% if policy.rule %}checked{% endif %}> Agendar backups com janela de manutenção</label>
 <div class="gu-bcalendar">
 <label>Frequência <select class="form-select" name="kind">{% for k in backup_kinds %}<option value="{{ k.id }}" {% if k.id == brule.kind|default('daily') %}selected{% endif %}>{{ k.label }}</option>{% endfor %}</select></label>

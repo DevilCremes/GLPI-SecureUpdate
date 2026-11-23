@@ -24,14 +24,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $upload = null;
     try {
         $op = $_POST['op'] ?? '';
-        $backupOps = ['backup','bsave','btest','bdelete','brestore','bfetch','bprune','bretry'];
+        $backupOps = ['backup','bsave','btest','bdelete','brestore','bfetch','bprune','bretry','bregister'];
         if (!in_array($op, ['check','settings','download','upload','apply','rollback', ...$backupOps], true)) { throw new RuntimeException('Operação inválida.'); }
         $req = ['op'=>$op, 'actor'=>(int)Session::getLoginUserID()];
         if ($op === 'check') { $req['scope'] = $_POST['scope'] ?? 'same'; }
         if ($op === 'bfetch') {
             return Panel::backupDownload((string)($_POST['ref'] ?? ''), $req['actor']);
         }
-        if ($op === 'bsave') {
+        if ($op === 'bregister') {
+            $fields = [
+                'local' => ['base'],
+                'nas' => ['server', 'share', 'user', 'password', 'domain'],
+                'cloud' => ['endpoint', 'bucket', 'region', 'access_key', 'secret_key'],
+            ];
+            $kind = $_POST['kind'] ?? '';
+            if (!is_string($kind) || !isset($fields[$kind])) { throw new RuntimeException('Escolha o tipo de destino.'); }
+            $req['options'] = ['kind' => $kind];
+            foreach (array_merge(['label', 'folder'], $fields[$kind]) as $field) {
+                // Keep credentials and paths byte-for-byte across GLPI input sanitizers.
+                $value = filter_input(INPUT_POST, $field, FILTER_UNSAFE_RAW, FILTER_REQUIRE_SCALAR);
+                if (!is_string($value) || strlen($value) > 2048) { throw new RuntimeException('Campo de destino inválido.'); }
+                $req['options'][$field] = $value;
+            }
+            $req['confirm'] = ($_POST['confirm'] ?? '') === 'yes';
+        } elseif ($op === 'bsave') {
             $rule = null;
             if (isset($_POST['enabled'])) {
                 $rule = ['kind'=>$_POST['kind'] ?? '', 'at'=>$_POST['at'] ?? '', 'zone'=>$_POST['zone'] ?? ''];
@@ -90,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $query = ($op ?? '') === 'settings' ? '?aba=notificacoes' : '';
     if (in_array($op ?? '', $backupOps ?? [], true)) { $query = '?aba=backups'; }
     if (in_array($op ?? '', ['download','upload'], true)) { $query = '?origem='.$op.'#gu-pacote'; }
-    $section = ['bsave'=>'gu-politica','btest'=>'gu-operacoes','bprune'=>'gu-limpeza'];
+    $section = ['bregister'=>'gu-destinos','bsave'=>'gu-politica','btest'=>'gu-operacoes','bprune'=>'gu-limpeza'];
     if (is_string($op ?? null) && isset($section[$op])) { $query .= '#'.$section[$op]; }
     return Panel::response('', 303, ['Location'=>Panel::url().$query]);
 }
