@@ -14,7 +14,7 @@ import tarfile
 import tempfile
 import time
 
-from common import STATE, api, official, patch, read, require, run, syncdir, write
+from common import STATE, api, official, validate_update, version_parts, read, require, run, syncdir, write
 import health
 from db import INSPECIONAR, cliente_db
 
@@ -111,8 +111,8 @@ class Host:
     def inspect(self):
         return json.loads(run([self.php,"-r",INSPECIONAR],stdout=sp.PIPE,**self.web).stdout)
 
-    def console(self, command):
-        run([self.php,"bin/console","--no-interaction",command],**self.web)
+    def console(self, command, *args):
+        run([self.php,"bin/console","--no-interaction",command,*args],**self.web)
 
     def service(self, cmd, u):
         if cmd == "active":
@@ -133,8 +133,11 @@ class Host:
             require(any(within(p,a) for a in [*inside,*self.ext]), f"Declare a raiz real dos dados externos: {s}")
         for rel in ["inc/downstream.php",".env",".env.local"]:
             if (self.app/rel).exists(): inside.append(self.app/rel)
-        roots=[p for p in inside if p.exists()]
+        roots=[p for p in inside if p.exists() or p.is_symlink()]
         for root in [*roots,*self.ext]:
+            if root.is_symlink() and root in (self.app/"config", self.app/"files"):
+                require(root.resolve(strict=True) in self.ext, "Declare o destino físico do link config/files.")
+                continue  # Validate its contents when walking the declared external root.
             require(not root.is_symlink(),"Use caminhos reais e downstream.php para dados externos.")
             if root.is_file():
                 continue
@@ -331,20 +334,47 @@ def reopen_new(host,j):
     clear_journal()
 
 
+def config_file(host, info):
+    directory = Path(info["cfg"])
+    if directory == host.app/"config" and directory.is_symlink():
+        directory = directory.resolve(strict=True)
+        require(directory in host.ext, "Configuração externa não declarada.")
+    return directory/"config_db.php"
+
+
+def restore_plugin_execution(host, info, previously_active):
+    # GLPI 10 deactivates plugins on db:update. Newer cores may suspend execution
+    # on a major migration. Restore the source selection on the migrated clone.
+    with host.client(info) as (sql, _, __):
+        if version_parts(info["version"])[0] >= 11:
+            mode = sql("SELECT value FROM glpi_configs WHERE context='core' AND name='plugins_execution_mode'")
+            if mode == "suspended_by_update":
+                host.console("plugin:resume_execution")
+            else:
+                require(mode in ("", "on"), "Execução dos plugins suspensa pelo administrador.")
+        active = set(sql("SELECT directory FROM glpi_plugins WHERE state=1").splitlines())
+        for name in sorted(set(previously_active) - active):
+            require(re.fullmatch(r"[A-Za-z0-9_]+", name), "Identificador de plugin inválido.")
+            host.console("plugin:activate", name)
+
+
 def create_job(host,plan,archive):
     require(not JOURNAL.exists(),"Há uma operação pendente. Consulte o serviço no servidor.")
     info=host.inspect()
-    require(info["version"]==plan["source"] and patch(plan["version"])>patch(info["version"]),"Aprovação não corresponde à instalação.")
+    validate_update(plan)
+    require(info["version"]==plan["source"],"Aprovação não corresponde à instalação.")
     asset=official(api("/releases/tags/"+plan["version"]))
     require(asset["sha"]==plan["sha"] and asset["url"]==plan["url"],"A release mudou; consulte e aprove novamente.")
     roots=host.layout(info)
-    baseline=health.inspect(host)
+    source_major, _ = version_parts(info["version"])
+    migrating = plan.get("scope") == "next"
+    baseline = health.inspect(host, plan["version"]) if migrating else health.inspect(host)
     health.http_probe(host.c["status_url"])
     # Evita colisões com volumes ativos na troca por renomeação.
     for line in Path("/proc/self/mountinfo").read_text().splitlines():
         point=Path(re.sub(r"\\([0-7]{3})",lambda m:chr(int(m[1],8)),line.split()[4]))
         require(not within(point,host.app),"Há um volume montado dentro da aplicação.")
-    cfg=Path(info["cfg"])/"config_db.php"
+    cfg=config_file(host, info)
     trusted(cfg.parent)
     require(cfg.is_file() and cfg.resolve()==cfg,"Configuração externa ou link inválido.")
     require(not (cfg.parent/"config_db_slave.php").exists(),"Réplica configurada. É necessário um procedimento para cluster.")
@@ -406,6 +436,8 @@ def create_job(host,plan,archive):
         host.console("db:check")
         with host.client(current) as (sql,_,__):
             require(sql("SELECT value FROM glpi_configs WHERE context='core' AND name='version'")==j["target"],"Versão final divergente.")
+        if migrating or source_major == 10:
+            restore_plugin_execution(host, current, baseline["plugins"])
         stage(j,"healthcheck")
         health.assess(host,baseline,bkp)
         os.sync()
@@ -531,7 +563,7 @@ def restore_security_backup(host, directory, job):
     require(info["version"]==meta["version"],"Restaure em uma instalação da mesma versão do GLPI.")
     roots=[host.app,*host.ext]
     require(meta.get("roots",list(map(str,roots)))==list(map(str,roots)),"Layout do backup diferente.")
-    cfg=Path(info["cfg"])/"config_db.php"
+    cfg=config_file(host, info)
     trusted(cfg.parent)
     require(cfg.is_file() and cfg.resolve()==cfg and any(within(cfg,p) for p in roots),"Configuração incompatível.")
     for line in Path("/proc/self/mountinfo").read_text().splitlines():

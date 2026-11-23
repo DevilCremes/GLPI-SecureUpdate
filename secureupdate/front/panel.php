@@ -1,19 +1,24 @@
 <?php
 use GlpiPlugin\Secureupdate\Panel;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Response;
-
+// GLPI 10 includes plugin scripts directly. GLPI 11+ boots the kernel before routing here.
+if (!defined('GLPI_VERSION') && is_file(dirname(__DIR__, 3) . '/inc/based_config.php')) {
+    require_once dirname(__DIR__, 3) . '/inc/includes.php';
+}
+if (!defined('GLPI_VERSION')) {
+    http_response_code(403);
+    return;
+}
 if (!defined('GLPI_ROOT') || !Panel::allowed() || !Plugin::isPluginActive('secureupdate')) {
-    return new Response('Acesso restrito ao perfil Super-Admin.', 403);
+    return Panel::response('Acesso restrito ao perfil Super-Admin.', 403);
 }
 global $CFG_GLPI;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST) && !empty($_SERVER['CONTENT_LENGTH'])) {
-        return new Response('O envio chegou sem formulário. Confira o limite post_max_size do PHP.', 413);
+        return Panel::response('O envio chegou sem formulário. Confira o limite post_max_size do PHP.', 413);
     }
     $token = $_POST['approval_token'] ?? null;
     if (!is_string($token) || !isset($_SESSION['secureupdate_token']) || !hash_equals($_SESSION['secureupdate_token'], $token)) {
-        return new Response('O formulário expirou. Reabra o painel.', 403);
+        return Panel::response('O formulário expirou. Reabra o painel.', 403);
     }
     if (($_POST['op'] ?? '') !== 'bfetch') { unset($_SESSION['secureupdate_token']); }
     $upload = null;
@@ -22,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $backupOps = ['backup','bsave','btest','bdelete','brestore','bfetch','bprune','bretry'];
         if (!in_array($op, ['check','settings','download','upload','apply','rollback', ...$backupOps], true)) { throw new RuntimeException('Operação inválida.'); }
         $req = ['op'=>$op, 'actor'=>(int)Session::getLoginUserID()];
+        if ($op === 'check') { $req['scope'] = $_POST['scope'] ?? 'same'; }
         if ($op === 'bfetch') {
             return Panel::backupDownload((string)($_POST['ref'] ?? ''), $req['actor']);
         }
@@ -86,17 +92,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (in_array($op ?? '', ['download','upload'], true)) { $query = '?origem='.$op.'#gu-pacote'; }
     $section = ['bsave'=>'gu-politica','btest'=>'gu-operacoes','bprune'=>'gu-limpeza'];
     if (is_string($op ?? null) && isset($section[$op])) { $query .= '#'.$section[$op]; }
-    return new RedirectResponse(Panel::url().$query, 303);
+    return Panel::response('', 303, ['Location'=>Panel::url().$query]);
 }
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') { return new Response('', 405); }
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') { return Panel::response('', 405); }
 $tab = $_GET['aba'] ?? 'atualizacao';
 if ($tab === 'avisos') { $tab = 'notificacoes'; }
 $tabs = ['atualizacao'=>'Atualização','saude'=>'Saúde','backups'=>'Backups','notificacoes'=>'Notificações','debug'=>'Debug'];
-if (!is_string($tab) || !isset($tabs[$tab])) { return new Response('Seção desconhecida.',404); }
+if (!is_string($tab) || !isset($tabs[$tab])) { return Panel::response('Seção desconhecida.',404); }
 if ($tab === 'debug' && isset($_GET['exportar'])) {
     try { $report = Panel::call(['op'=>'debug']); }
-    catch (Throwable $e) { return new Response('Diagnóstico indisponível.',503,['Cache-Control'=>'no-store']); }
-    return new Response(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+    catch (Throwable $e) { return Panel::response('Diagnóstico indisponível.',503,['Cache-Control'=>'no-store']); }
+    return Panel::response(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         200, ['Content-Type'=>'application/json; charset=utf-8','Content-Disposition'=>'attachment; filename="glpi-debug.json"','Cache-Control'=>'no-store','X-Content-Type-Options'=>'nosniff']);
 }
 $s = [];
@@ -131,14 +137,17 @@ $pageTitles = ['atualizacao'=>'Atualizações do GLPI','saude'=>'Saúde da insta
 $comparisonKeys = ['Regressões críticas','Cobertura perdida','Alertas existentes','Verificações ignoradas'];
 $nav = [];
 foreach ($tabs as $id=>$label) { $nav[] = ['id'=>$id,'label'=>$label,'url'=>Panel::url().'?aba='.$id]; }
+$major = (int) GLPI_VERSION;
+$assetBase = $CFG_GLPI['root_doc'].'/plugins/secureupdate'.($major === 10 ? '/public' : '');
 Html::header('Atualizações do GLPI', Panel::url(), 'config', 'plugins');
 \Glpi\Application\View\TemplateRenderer::getInstance()->display('@secureupdate/panel.html.twig', [
     'page_title'=>$pageTitles[$tab],'comparison_keys'=>$comparisonKeys,
     'has_comparison'=>(bool)array_intersect($comparisonKeys,array_keys($s['health'] ?? [])),
     'job_keys'=>['Estado do trabalho','Identificador','Etapa da transação','Ponto de rollback'],
-    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$CFG_GLPI['root_doc'].'/plugins/secureupdate/css/panel.css?v=2',
-    'js_url'=>$CFG_GLPI['root_doc'].'/plugins/secureupdate/js/panel.js?v=2',
+    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$assetBase.'/css/panel.css?v=2',
+    'js_url'=>$assetBase.'/js/panel.js?v=2',
     'selected_source'=>$_GET['origem'] ?? ($prepared['source'] ?? 'download'),
+    'major'=>$major, 'migration'=>($plan['scope'] ?? 'same') === 'next',
     'installed'=>GLPI_VERSION,'phase'=>!empty($s['mail_busy']) ? 'enviando e-mail de backup' : (($s['step'] ?? '') ?: ($s['phase'] ?? '')),'error'=>$error ?: ($s['error'] ?? ''),'msg'=>$msg,
     'connected'=>(bool)$s,'available'=>!empty($plan['id']),'target'=>$plan['version'] ?? '',
     'urgency'=>$plan['urgency'] ?? '', 'notes'=>$plan['notes'] ?? [],'busy'=>$busy,

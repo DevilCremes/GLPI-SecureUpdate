@@ -9,7 +9,7 @@ import tempfile
 import time
 from urllib.request import Request, urlopen
 
-BRANCH = "12.0"
+STABLE_VERSION = re.compile(r"(10|11|12)\.0\.(0|[1-9][0-9]{0,4})")
 API = "https://api.github.com/repos/glpi-project/glpi"
 GITHUB = "https://github.com/glpi-project/glpi"
 STATE = Path("/var/lib/glpi-secureupdate")
@@ -52,9 +52,26 @@ def syncdir(path):
         os.close(fd)
 
 
-def patch(version):
-    require(isinstance(version, str) and re.fullmatch(r"12\.0\.(0|[1-9][0-9]{0,4})", version), "Versão fora do ramo 12.0.")
-    return int(version.rsplit(".", 1)[1])
+def version_parts(version):
+    match = STABLE_VERSION.fullmatch(version) if isinstance(version, str) else None
+    require(match, "Informe uma versão estável do ramo 10.0, 11.0 ou 12.0.")
+    return tuple(map(int, match.groups()))
+
+
+def target_major(current, scope):
+    major, _ = version_parts(current)
+    require(scope in ("same", "next"), "Escolha de ramo inválida.")
+    if scope == "next":
+        require(major < 12, "Não há próximo ramo suportado.")
+        return major + 1
+    return major
+
+
+def validate_update(plan):
+    source = version_parts(plan["source"])
+    target = version_parts(plan["version"])
+    require(target[0] == target_major(plan["source"], plan.get("scope", "same")) and target > source,
+            "O destino não corresponde ao ramo escolhido ou não é mais recente.")
 
 
 def api(path):
@@ -67,7 +84,7 @@ def api(path):
 
 def official(item):
     v = item["tag_name"]
-    patch(v)
+    version_parts(v)
     require(not item["draft"] and not item["prerelease"], "A versão não é estável.")
     name = f"glpi-{v}.tgz"
     asset, = [a for a in item["assets"] if a["name"] == name]
@@ -76,25 +93,27 @@ def official(item):
     return {"version":v, "url":link, "sha":asset["digest"][7:]}
 
 
-def catalog(current, fetch=api):
-    start = patch(current)
+def catalog(current, fetch=api, *, scope="same"):
+    start = version_parts(current)
+    major = target_major(current, scope)
     notes = {}
     for page in range(1, 21):
         rows = fetch(f"/releases?per_page=40&page={page}")
         require(isinstance(rows, list), "Catálogo inválido.")
         for item in rows:
             tag = item["tag_name"]
-            if not re.fullmatch(r"12\.0\.(0|[1-9][0-9]{0,4})", tag) or item["draft"] or item["prerelease"]:
+            if not STABLE_VERSION.fullmatch(tag) or item["draft"] or item["prerelease"]:
                 continue
-            if patch(tag) > start:
+            candidate = version_parts(tag)
+            if candidate[0] == major and candidate > start:
                 notes[tag] = item
-        if len(rows) < 40 or any(i["tag_name"] == current for i in rows):
+        if len(rows) < 40 or (scope == "same" and any(i["tag_name"] == current for i in rows)):
             break
     else:
         raise ValueError("Catálogo incompleto. Consulte as releases oficiais.")
     if not notes:
-        return {"source":current, "version":current,"notes":[],"checked":int(time.time()),"id":""}
-    ordered = sorted(notes, key=patch, reverse=True)
+        return {"source":current, "scope":scope, "version":current,"notes":[],"checked":int(time.time()),"id":""}
+    ordered = sorted(notes, key=version_parts, reverse=True)
     plan = official(notes[ordered[0]])
     labels = {"critical":"Crítica","high":"Alta","medium":"Média","moderate":"Média","low":"Baixa"}
     ranks = {"Crítica":4,"Alta":3,"Média":2,"Baixa":1}
@@ -105,7 +124,7 @@ def catalog(current, fetch=api):
         for level in re.findall(r"\[SECURITY\s*[-:]\s*(critical|high|medium|moderate|low)\b", body, re.I):
             severity.append(labels[level.lower()])
         entries.append({"version":tag,"body":body[:12000],"url":f"{GITHUB}/releases/tag/{tag}"})
-    plan.update(source=current, checked=int(time.time()), urgency=max(severity,key=ranks.get,default="Severidade não informada"), notes=entries)
+    plan.update(source=current, scope=scope, checked=int(time.time()), urgency=max(severity,key=ranks.get,default="Severidade não informada"), notes=entries)
     plan["id"] = hashlib.sha256((current+"|"+plan["version"]+"|"+plan["sha"]).encode()).hexdigest()
     return plan
 

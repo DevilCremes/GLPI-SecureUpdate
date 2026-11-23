@@ -133,6 +133,23 @@ class Control(unittest.TestCase):
         self.assertEqual(self.a.running_job["op"],"backup")
         self.assertTrue(self.a.dispatch({"op":"backups"})["items"]==[])
 
+    def test_manual_branch_selection_invalidates_previous_receipt(self):
+        self.a.s["plan"] = {"id":"old","source":"10.0.1"}
+        self.a.s["prepared"] = {"id":"old-receipt"}
+        with patch.object(agent.subprocess, "Popen"):
+            self.a.dispatch({"op":"check", "actor":4, "scope":"next"})
+        self.assertEqual(self.a.running_job["scope"], "next")
+        self.assertFalse(self.a.s["prepared"])
+        self.assertFalse(self.a.s["plan"])
+        self.assertFalse(self.a.running_job["notify"])
+
+    def test_scheduled_consultation_returns_to_maintenance(self):
+        self.a.s["plan"] = {"scope":"next", "id":"manual-plan"}
+        with patch.object(agent.subprocess, "Popen"):
+            self.a.start("check", 0)
+        self.assertEqual(self.a.running_job["scope"], "same")
+        self.assertEqual(self.a.running_job["op"], "check")
+
     def test_no_request_install(self):
         with self.assertRaises(ValueError): self.a.dispatch({"op":"apply","actor":1,"ref":""})
     def test_stale(self):
@@ -228,22 +245,22 @@ class Transaction(unittest.TestCase):
     def inspect(self):
         db=re.search("dbdefault = '([^']+)'",(self.app/"config/config_db.php").read_text()).group(1)
         return dict(version=(self.app/"version").read_text(),cfg=str(self.app/"config"),db=db)
-    def console(self,cmd):
+    def console(self,cmd,*args):
         db=self.inspect()["db"]
         if cmd=="maintenance:enable": self.modes[db]="1"
         if cmd=="maintenance:disable": self.modes[db]="0";self.opened+=1
         if cmd=="db:update":
             assert db!="glpi" and not self.active and self.modes[db]=="1"
             (self.ext[0]/"ticket").write_text("alterado pela migração")
-            self.sqlversions[db]="12.0.2"
+            self.sqlversions[db]=self.inspect()["version"]
             if self.fail=="migration": raise ValueError("Falha simulada no banco")
     def service(self,op,unit):
         if op=="active": return unit in self.active
         if op=="start": self.active.add(unit)
         if op=="stop": self.active.discard(unit)
-    def hc(self,host):
+    def hc(self,host,target=None):
         version=self.inspect()["version"]
-        return {"checks":{"smtp":"warning","db":"critical" if self.fail=="health" and version=="12.0.2" else "ok"},"score":90,"id":1,"services":{"db":"OK"}}
+        return {"plugins":["secureupdate","healthcheck"],"checks":{"smtp":"warning","db":"critical" if self.fail=="health" and version=="12.0.2" else "ok"},"score":90,"id":1,"services":{"db":"OK"}}
     def http(self,url):
         if self.opened and self.fail=="http":raise ValueError("HTTP indisponível")
         return "OK"
@@ -251,6 +268,8 @@ class Transaction(unittest.TestCase):
     def client(self,info):
         db=info["db"]
         def sql(q):
+            if "FROM glpi_plugins" in q: return "secureupdate\nhealthcheck"
+            if "plugins_execution_mode" in q: return "on"
             if "maintenance_mode" in q: return self.modes[db]
             if "glpi_configs" in q: return self.sqlversions[db]
             return "0"
@@ -268,6 +287,48 @@ class Transaction(unittest.TestCase):
         self.assertEqual((self.ext[0]/"ticket").read_text(),"original")
         self.assertEqual(self.active,set(self.units))
         self.assertFalse(engine.JOURNAL.exists())
+    def configure_versions(self, source, target, scope):
+        (self.app/"version").write_text(source)
+        self.sqlversions["glpi"] = source
+        tree = self.tmp/"build"/"glpi"
+        (tree/"version").write_text(target)
+        with tarfile.open(self.archive, "w:gz") as tar:
+            tar.add(tree, arcname="glpi")
+        tag = release(target, hashlib.sha256(self.archive.read_bytes()).hexdigest())
+        engine.api.return_value = tag
+        self.plan = {**common.official(tag), "source":source, "scope":scope, "actor":9, "job":"test"}
+
+    def check_transition(self, source, target, scope):
+        self.configure_versions(source, target, scope)
+        self.execute()
+        self.assertEqual(self.inspect()["version"], target)
+        self.assertEqual(self.sqlversions["glpi"], source)
+        self.assertEqual(self.sqlversions[self.inspect()["db"]], target)
+        self.assertEqual(self.active, set(self.units))
+        engine.manual(self, self.inspect()["db"])
+        self.original()
+        self.assertEqual(self.inspect()["version"], source)
+
+    def test_maintenance_10_and_rollback(self):
+        self.check_transition("10.0.9", "10.0.10", "same")
+
+    def test_maintenance_11_and_rollback(self):
+        self.check_transition("11.0.8", "11.0.9", "same")
+
+    def test_10_to_11_and_rollback(self):
+        self.check_transition("10.0.28", "11.0.13", "next")
+
+    def test_11_to_12_and_rollback(self):
+        self.check_transition("11.0.13", "12.0.2", "next")
+
+    def test_major_migration_failure_restores_source(self):
+        self.configure_versions("10.0.28", "11.0.13", "next")
+        self.fail = "migration"
+        with self.assertRaisesRegex(ValueError, "Falha simulada"):
+            self.execute()
+        self.original()
+        self.assertEqual(self.inspect()["version"], "10.0.28")
+
     def test_success(self):
         self.execute()
         self.assertTrue(self.inspect()["db"].startswith("gsu_"))

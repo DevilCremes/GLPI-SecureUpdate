@@ -9,11 +9,17 @@ SEAL_PRIVATE_OPTIONS = (getattr(fcntl, "F_SEAL_WRITE", 8) | getattr(fcntl, "F_SE
                         | getattr(fcntl, "F_SEAL_SHRINK", 2) | getattr(fcntl, "F_SEAL_SEAL", 1))
 
 INSPECIONAR = r"""
-require 'vendor/autoload.php';
-new \Glpi\Kernel\Kernel();
+if (is_file('src/Glpi/Kernel/Kernel.php')) {
+    require 'vendor/autoload.php';
+    new \Glpi\Kernel\Kernel();
+    $plugins = GLPI_PLUGINS_DIRECTORIES;
+} else {
+    require 'inc/based_config.php';
+    $plugins = PLUGINS_DIRECTORIES;
+}
 require_once GLPI_CONFIG_DIR . '/config_db.php';
 $c = (new ReflectionClass('DB'))->getDefaultProperties();
-$dirs = [GLPI_CONFIG_DIR, GLPI_VAR_DIR, GLPI_MARKETPLACE_DIR, ...GLPI_PLUGINS_DIRECTORIES];
+$dirs = [GLPI_CONFIG_DIR, GLPI_VAR_DIR, GLPI_MARKETPLACE_DIR, ...$plugins];
 foreach (get_defined_constants() as $k => $v) {
     if (preg_match('/^GLPI_(DOC|CACHE|CRON|GRAPH|LOCAL_I18N|LOCK|LOG|PICTURE|PLUGIN_DOC|RSS|SESSION|TMP|UPLOAD|INVENTORY|THEMES)_DIR$/D', $k)) {
         $dirs[] = $v;

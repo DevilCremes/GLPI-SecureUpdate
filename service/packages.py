@@ -7,7 +7,7 @@ import socket
 import subprocess
 import time
 
-from common import api, official, require, syncdir, write
+from common import api, official, require, syncdir, validate_update, write
 
 MAX_BYTES = 512 * 1024**2
 CHUNK = 1024**2
@@ -15,6 +15,7 @@ TTL = 24 * 3600
 
 
 def current_asset(plan):
+    validate_update(plan)
     data = api("/releases/tags/" + plan["version"])
     asset = official(data)
     require(all(asset[k] == plan[k] for k in ("sha", "url", "version")),

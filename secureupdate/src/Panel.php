@@ -37,7 +37,19 @@ final class Panel {
             return $r['data'];
         } finally { fclose($fp); }
     }
-    public static function backupDownload(string $id, int $actor): \Symfony\Component\HttpFoundation\StreamedResponse {
+    public static function response($body, int $status, array $headers = []) {
+        if (version_compare(GLPI_VERSION, '11.0.0', '>=')) {
+            if ($body instanceof \Closure) {
+                return new \Symfony\Component\HttpFoundation\StreamedResponse($body, $status, $headers);
+            }
+            return new \Symfony\Component\HttpFoundation\Response($body, $status, $headers);
+        }
+        http_response_code($status);
+        foreach ($headers as $name => $value) { header($name . ': ' . $value); }
+        if ($body instanceof \Closure) { $body(); } else { echo $body; }
+        return null;
+    }
+    public static function backupDownload(string $id, int $actor) {
         if (!preg_match('/^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{16}$/D', $id)) {
             throw new \RuntimeException('Identificador inválido.');
         }
@@ -51,7 +63,7 @@ final class Panel {
             if (empty($header['ok']) || !is_int($header['size'] ?? null) || $header['size'] <= 0) {
                 throw new \RuntimeException('Download indisponível. Consulte o trabalho no servidor.');
             }
-            return new \Symfony\Component\HttpFoundation\StreamedResponse(static function () use ($fp) {
+            return self::response(static function () use ($fp) {
                 try { fpassthru($fp); } finally { fclose($fp); }
             }, 200, ['Content-Type'=>'application/x-tar','Cache-Control'=>'private, no-store',
                      'Content-Length'=>(string)$header['size'],'X-Content-Type-Options'=>'nosniff',

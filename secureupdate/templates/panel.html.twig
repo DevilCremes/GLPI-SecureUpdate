@@ -23,7 +23,7 @@
 <h2>Resumo da versão</h2>
 {% if available %}
         <dl class="gu-summary">
-            <div><dt>Ramo</dt><dd>12.0</dd></div>
+            <div><dt>Ramo</dt><dd>{{ major }}.0{% if migration %} → {{ major + 1 }}.0{% endif %}</dd></div>
             <div><dt>Pacote</dt><dd>glpi-{{ target }}.tgz</dd></div>
             <div><dt>Origem</dt><dd>{% if prepared.source|default('') == 'upload' %}Arquivo enviado do computador{% elseif prepared.source|default('') == 'download' %}Baixado pelo servidor{% else %}Release oficial do GLPI{% endif %}</dd></div>
         </dl>
@@ -32,8 +32,10 @@
         <details class="gu-note" {% if loop.first %}open{% endif %}><summary>GLPI {{ note.version }}</summary>
             <div class="gu-notes">{{ note.body }}</div><a href="{{ note.url }}" rel="noopener noreferrer">Abrir notas oficiais ↗</a>
         </details>{% endfor %}
-{% elseif checked %}<p>O GLPI está atualizado no ramo 12.0.</p>{% elseif connected %}<p>Aguardando a primeira consulta de versões.</p>{% endif %}<div class="gu-check">{% if checked %}<small>Última consulta em {{ checked }}</small>{% endif %}
-{% if connected and not busy %}<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="check"><button class="btn">Consultar versões</button></form>{% endif %}</div>
+{% elseif checked %}<p>{% if migration %}Nenhuma versão estável disponível no ramo {{ major + 1 }}.0.{% else %}O GLPI está atualizado no ramo {{ major }}.0.{% endif %}</p>{% elseif connected %}<p>Aguardando a primeira consulta de versões.</p>{% endif %}<div class="gu-check">{% if checked %}<small>Última consulta em {{ checked }}</small>{% endif %}
+{% if connected and not busy %}<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="check">{% if major < 12 %}
+<label>Ramo de destino <select name="scope"><option value="same">Manutenção · {{ major }}.0</option><option value="next"{% if migration %} selected{% endif %}>Migração · {{ major + 1 }}.0</option></select></label>
+{% endif %}<button class="btn">Consultar versões</button></form>{% endif %}</div>
 </section>
 {% if available %}<section class="gu-pane" id="gu-pacote" data-label="Verificação e aprovação">
 <h2>Verificação e aprovação</h2>
@@ -52,8 +54,8 @@
                 <p>{{ prepared.size }} bytes</p><code>{{ prepared.sha }}</code>
             </details>
             <form class="gu-approval" method="post">
-                <input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="apply"><input type="hidden" name="ref" value="{{ prepared.id }}">
-                <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required><span>Autorizo a atualização e o rollback em caso de falha antes da reabertura.</span></label>
+                <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="apply"><input type="hidden" name="ref" value="{{ prepared.id }}">
+                <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required><span>Autorizo {% if migration %}a migração{% else %}a atualização{% endif %} de {{ installed }} para {{ target }} e o rollback em caso de falha antes da reabertura.</span></label>
                 <button class="btn btn-primary" type="submit" disabled>Aprovar atualização</button>
                 <noscript><button class="btn" type="submit">Confirmar autorização e atualizar</button></noscript>
             </form>
@@ -62,13 +64,13 @@
             {% if source == 'upload' %}
             <p><a href="{{ asset_url }}" rel="noopener noreferrer">Baixar o .tgz oficial do GLPI {{ target }}</a></p>
             <form method="post" enctype="multipart/form-data">
-                <input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="upload"><input type="hidden" name="ref" value="{{ ref }}">
+                <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="upload"><input type="hidden" name="ref" value="{{ ref }}">
                 <label>Arquivo compactado (.tgz)<input class="form-control" type="file" name="package" accept=".tgz,.tar.gz" required></label>
                 <button class="btn" type="submit">Enviar e verificar arquivo</button>
             </form>
             {% else %}
             <p>O servidor compara o pacote com o SHA-256 da release oficial antes de liberar a aprovação.</p>
-            <form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="download"><input type="hidden" name="ref" value="{{ ref }}"><button class="btn" type="submit">Baixar e verificar pacote</button></form>
+            <form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="download"><input type="hidden" name="ref" value="{{ ref }}"><button class="btn" type="submit">Baixar e verificar pacote</button></form>
             {% endif %}
             {% if can_apply and prepared.source == source %}</details>{% endif %}
         </div>
@@ -79,7 +81,7 @@
 </section>
 {% endif %}{% if restore and not busy %}<section class="gu-pane" id="gu-rollback" data-label="Rollback">
 <h2>Rollback</h2>
-<p>Ponto de restauração de {{ backup_time }}. O serviço salva o estado atual antes de reverter. Chamados posteriores ao backup deixarão de aparecer na instalação restaurada.</p><form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="rollback"><input type="hidden" name="ref" value="{{ restore }}"><label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo voltar ao ponto indicado.</label><button class="btn">Aprovar rollback</button></form>
+<p>Ponto de restauração de {{ backup_time }}. O serviço salva o estado atual antes de reverter. Chamados posteriores ao backup deixarão de aparecer na instalação restaurada.</p><form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="rollback"><input type="hidden" name="ref" value="{{ restore }}"><label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo voltar ao ponto indicado.</label><button class="btn">Aprovar rollback</button></form>
 </section>
 {% endif %}</div></div></div>
 {% elseif tab == 'backups' %}
@@ -98,10 +100,10 @@
 {% for b in backups %}<details class="gu-note"><summary>{{ b.date }} · {{ b.version }} · {{ b.size }} · {{ b.destination }}</summary>
 <p><code>{{ b.id }}</code> · {% if b.deleting %}Exclusão incompleta. Confirme a exclusão para tentar novamente.{% elseif b.pending %}Envio pendente. Cópia local preservada.{% else %}Cópia verificada{% endif %}</p>
 {% if not busy %}<div class="gu-actions">
-{% for action in backup_actions %}{% if not b.deleting and (action.id != 'bretry' or b.pending) %}<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="{{ action.id }}"><input type="hidden" name="ref" value="{{ b.id }}"><button class="btn">{{ action.label }}</button></form>{% endif %}{% endfor %}
+{% for action in backup_actions %}{% if not b.deleting and (action.id != 'bretry' or b.pending) %}<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="{{ action.id }}"><input type="hidden" name="ref" value="{{ b.id }}"><button class="btn">{{ action.label }}</button></form>{% endif %}{% endfor %}
 </div>
 <details><summary>Restaurar ou excluir</summary><p>Restaurar substitui os dados em uso pelos desta cópia e abre uma janela de manutenção. Excluir remove esta cópia do destino e do catálogo.</p>
-<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="ref" value="{{ b.id }}">
+<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="ref" value="{{ b.id }}">
 <label>Digite o identificador completo <input class="form-control" name="typed" required autocomplete="off"></label>
 <button class="btn" type="submit" name="op" value="brestore" {% if b.deleting %}disabled{% endif %}>Restaurar esta cópia</button> <button class="btn" type="submit" name="op" value="bdelete">Excluir esta cópia</button>
 </form></details>{% endif %}</details>{% endfor %}
@@ -111,7 +113,7 @@
 <section class="gu-pane" id="gu-politica" data-label="Destino, agendamento e retenção">
 <h2>Destino, agendamento e retenção</h2>
 <form method="post" class="gu-bpolicy"><fieldset {% if busy %}disabled{% endif %}>
-<input type="hidden" name="op" value="bsave"><input type="hidden" name="approval_token" value="{{ token }}">
+<input type="hidden" name="op" value="bsave"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}">
 <label>Salvar em <select class="form-select" name="destination">{% for d in vault.destinations %}<option value="{{ d.id }}" {% if d.id == policy.destination %}selected{% endif %}>{{ d.label }} · {{ d.type_label }}</option>{% endfor %}</select></label>
 <small>Os destinos locais, NAS e nuvem são cadastrados no servidor Linux.</small>
 <label class="gu-choice"><input class="form-check-input" name="enabled" type="checkbox" {% if policy.rule %}checked{% endif %}> Agendar backups com janela de manutenção</label>
@@ -132,10 +134,10 @@
 {% if not busy %}<section class="gu-pane" id="gu-operacoes" data-label="Testar destino ou criar backup">
 <h2>Testar destino ou criar backup</h2>
 {% if not busy %}
-<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="btest">
+<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="btest">
 <label>Testar destino <select class="form-select" name="ref">{% for d in vault.destinations %}<option value="{{ d.id }}" {% if policy.destination == d.id %}selected{% endif %}>{{ d.label }}</option>{% endfor %}</select></label>
 <button class="btn">Testar conexão</button></form>
-<form method="post"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="backup">
+<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="backup">
 <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo entrar em manutenção para copiar o banco, a instalação e os dados externos.</label><button class="btn btn-primary">Criar backup agora</button></form>
 {% endif %}
 </section>
@@ -143,7 +145,7 @@
 <h2>Prévia da limpeza</h2>
 <p>{{ vault.count }} cópia(s) fora da política salva para {{ policy.destination }}.</p>
 {% if vault.count %}<ul>{% for key in vault.candidates %}<li><code>{{ key }}</code></li>{% endfor %}</ul>
-{% if not busy %}<form method="post"><input type="hidden" name="op" value="bprune"><input type="hidden" name="ref" value="{{ vault.digest }}"><input type="hidden" name="approval_token" value="{{ token }}">
+{% if not busy %}<form method="post"><input type="hidden" name="op" value="bprune"><input type="hidden" name="ref" value="{{ vault.digest }}"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}">
 <label class="gu-choice"><input class="form-check-input" type="checkbox" name="confirm" value="yes" required> Autorizo excluir todas as {{ vault.count }} cópias da prévia.</label><button class="btn">Aplicar limpeza</button></form>{% endif %}{% endif %}
 </section>
 </div></div></div>
@@ -172,7 +174,7 @@
 <div><dt>Aviso no painel</dt><dd>{% if browser %}Ativo{% else %}Desativado{% endif %}</dd></div>
 <div><dt>E-mail de backup</dt><dd>{% if backup_email == 'all' %}Todos{% elseif backup_email == 'issues' %}Erros e avisos{% else %}Desativado{% endif %}</dd></div></dl>
 <form method="post" class="gu-schedule">
-    <input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="settings">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="settings">
 <div class="gu-ledger">
 <h2 class="gu-ledger-title">Regras e canais</h2>
 <div class="gu-split"><nav class="gu-index" aria-label="Regras e canais" hidden></nav>

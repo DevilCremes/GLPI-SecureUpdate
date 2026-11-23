@@ -38,7 +38,7 @@ class MailCommand extends AbstractCommand {
         if ($backup) {
             [$subject, $body, $acked] = $this->backupMessage();
         } else {
-            if (!preg_match('/^12\.0\.\d+$/D', $version)) { throw new \InvalidArgumentException('Versão inválida.'); }
+            if (!preg_match('/^(?:10|11|12)\.0\.(?:0|[1-9][0-9]{0,4})$/D', $version)) { throw new \InvalidArgumentException('Versão inválida.'); }
             $subject = '[GLPI] Versão '.$version.' disponível';
             $body = "A versão ".$version." está disponível. Acesse Atualizações do GLPI com o perfil Super-Admin para revisar o changelog. A instalação exige sua aprovação.";
         }
@@ -67,7 +67,16 @@ class MailCommand extends AbstractCommand {
             }
             try {
                 $mailer = new \GLPIMailer();
-                $mailer->getEmail()->from($sender['email'])->to($email)->subject($subject)->text($body);
+                if (version_compare(GLPI_VERSION, '11.0.0', '<')) {
+                    if (!$mailer->setFrom($sender['email'], $sender['name'] ?? '') || !$mailer->addAddress($email)) {
+                        throw new \RuntimeException('Endereço de e-mail inválido.');
+                    }
+                    $mailer->isHTML(false);
+                    $mailer->Subject = $subject;
+                    $mailer->Body = $body;
+                } else {
+                    $mailer->getEmail()->from($sender['email'])->to($email)->subject($subject)->text($body);
+                }
                 if (!$mailer->send()) { throw new \RuntimeException('Falha ao enviar aviso.'); }
             } catch (\Throwable $e) {
                 if (!$backup) { throw $e; }

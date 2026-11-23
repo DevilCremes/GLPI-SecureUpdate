@@ -1,7 +1,10 @@
 # GLPI-SecureUpdate
-Plugin para GLPI 12.0.x em Linux que reúne atualizações aprovadas pelo Super-Admin, verificação SHA-256 do pacote oficial, integração com o GLPI Health Check de João Paulo S. Costa e rollback. Permite agendar backups locais, em NAS ou na nuvem, gerenciar a retenção e receber resultados por e-mail.
+Plugin para GLPI 10.0.x, 11.0.x e 12.0.x em Linux que reúne atualizações aprovadas pelo Super-Admin, verificação SHA-256 do pacote oficial, integração com o GLPI Health Check de João Paulo S. Costa e rollback. Permite agendar backups locais, em NAS ou na nuvem, gerenciar a retenção e receber resultados por e-mail.
 
-O SecureUpdate é um plugin em português para administrar atualizações e backups do **GLPI 12.0.x em Linux**. No próprio GLPI, o Super-Admin pode consultar o que mudou em uma versão, verificar o pacote oficial e aprovar a instalação. A consulta por novas versões pode ser agendada. **Toda atualização exige aprovação explícita.**
+O SecureUpdate é um plugin em português para administrar atualizações e backups do **GLPI 10.0.x, 11.0.x e 12.0.x em Linux**. No próprio GLPI, o Super-Admin pode consultar o que mudou em uma versão, verificar o pacote oficial e aprovar a instalação. A consulta por novas versões pode ser agendada. **Toda atualização exige aprovação explícita.**
+
+Na versão 1.1.0, a aba **Atualização** permite escolher a manutenção no ramo instalado ou uma migração para o próximo ramo (10 → 11 ou 11 → 12). As consultas agendadas continuam no ramo instalado. A passagem de 10 para 12 exige duas operações, cada uma com pacote verificado, aprovação, backup e diagnóstico próprios.
+
 
 [Baixar a prévia interativa do painel](https://raw.githubusercontent.com/DevilCremes/GLPI-SecureUpdate/main/docs/previa-secureupdate.html)
 

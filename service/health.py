@@ -4,7 +4,7 @@ import subprocess as sp
 import time
 from urllib.parse import urlsplit
 from urllib.request import build_opener, HTTPRedirectHandler, Request
-from common import STATE, require, run, write
+from common import STATE, require, run, version_parts, write
 
 
 def compare(before,after):
@@ -16,17 +16,23 @@ def compare(before,after):
     return regressions,lost
 
 
-def inspect(host):
+def inspect(host, target=None):
     def data(*commands):
         r=run([host.php,"bin/console","--no-interaction","--no-ansi",*commands],
               stdout=sp.PIPE,timeout=900,**host.web)
         return json.loads(r.stdout)
-    native=data("system:status","--private")
+    major, _ = version_parts(host.inspect()["version"])
+    flags = ["--format=json"] if major == 10 else []
+    native=data("system:status","--private",*flags)
     for svc in ("db","filesystem"):
         require(native.get(svc,{}).get("status")=="OK","Healthcheck nativo reprovado: "+svc)
-    require(native.get("glpi",{}).get("database_version",{}).get("uptodate") is True,
-            "O núcleo informa esquema de banco desatualizado.")
-    report=data("plugins:secureupdate:health")
+    if major == 12:
+        require(native.get("glpi",{}).get("database_version",{}).get("uptodate") is True,
+                "O núcleo informa esquema de banco desatualizado.")
+    report=data("plugins:secureupdate:health", *([target] if target else []))
+    require(report.get("schema_current") is True, "O GLPI não confirmou o esquema instalado.")
+    require(isinstance(report.get("plugins"), list) and {"secureupdate","healthcheck"} <= set(report["plugins"]),
+            "Os plugins obrigatórios não estão ativos.")
     require(type(report.get("checks")) is dict and report["checks"] and
             all(s in ("ok","info","warning","error","critical","skipped") for s in report["checks"].values()),
             "O diagnóstico completo retornou dados inválidos.")
@@ -39,6 +45,7 @@ def assess(host,baseline,folder):
         post=inspect(host)
         write(folder/"health-after.json",post)
         bad,lost=compare(baseline,post)
+        lost.extend("plugin: "+name for name in sorted(set(baseline.get("plugins", [])) - set(post.get("plugins", []))))
         native=sorted(k for k,v in post["services"].items() if v=="PROBLEM" and baseline["services"].get(k)!="PROBLEM" and k!="glpi")
         summary={"Núcleo":"Banco, esquema e filesystem verificados","GLPI Health Check":f"Diagnóstico #{post['id']} · pontuação {post['score']}/100",
                  "Regressões críticas":", ".join(bad+native) or "Nenhuma detectada",

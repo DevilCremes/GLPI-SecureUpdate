@@ -30,4 +30,19 @@ check(Panel::allowed(), 'Identificador do banco como texto');
 Session::$id = 0;
 check(!Panel::allowed(), 'Perfil residual em sessão encerrada');
 check(Panel::escape('<script>') === '&lt;script&gt;', 'Escape de conteúdo externo');
+// GLPI 10 routes directly to PHP, without Symfony HttpFoundation.
+define('GLPI_VERSION', '10.0.28');
+require dirname(__DIR__) . '/secureupdate/setup.php';
+plugin_init_secureupdate();
+check($PLUGIN_HOOKS['csrf_compliant']['secureupdate'] === true, 'CSRF nativo no GLPI 10');
+$range = plugin_version_secureupdate()['requirements']['glpi'];
+foreach (['10.0.28','11.0.13','12.0.2'] as $version) {
+    check(version_compare($version, $range['min'], '>=') && version_compare($version, $range['max'], '<'), 'Ramo suportado');
+}
+ob_start();
+Panel::response('Perfil restrito', 403);
+check(ob_get_clean() === 'Perfil restrito' && http_response_code() === 403, 'Resposta HTTP no GLPI 10');
+ob_start();
+Panel::response(static function () { echo 'TAR'; }, 200);
+check(ob_get_clean() === 'TAR' && http_response_code() === 200, 'Streaming no GLPI 10');
 echo "Testes PHP do painel aprovados.\n";

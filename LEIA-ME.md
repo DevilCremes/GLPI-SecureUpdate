@@ -1,16 +1,28 @@
-# Atualizações do GLPI 1.0.8
+# Atualizações do GLPI 1.1.0
 
-Plugin em português para instalações Linux pelo pacote oficial .tgz do ramo GLPI 12.0.x em um único servidor com systemd e uma conexão primária MySQL ou MariaDB. O Super-Admin revisa a versão, o changelog e a urgência antes de aprovar a instalação. O serviço consulta versões diariamente por padrão. Na aba Notificações, o modo Simples permite escolher de 1 a 168 horas. O modo Avançado usa o horário e o fuso escolhidos para consultar diariamente, em um dia da semana, no primeiro ou último dia de cada mês ou em um dia do mês de 1 a 31. O painel e o e-mail podem ser habilitados de forma independente.
+Plugin em português para instalações Linux pelo pacote oficial .tgz dos ramos GLPI 10.0.x, 11.0.x e 12.0.x em um único servidor com systemd e uma conexão primária MySQL ou MariaDB. O Super-Admin revisa a versão, o changelog e a urgência antes de aprovar a instalação. O serviço consulta versões diariamente por padrão. Na aba Notificações, o modo Simples permite escolher de 1 a 168 horas. O modo Avançado usa o horário e o fuso escolhidos para consultar diariamente, em um dia da semana, no primeiro ou último dia de cada mês ou em um dia do mês de 1 a 31. O painel e o e-mail podem ser habilitados de forma independente.
 
 ## Antes de instalar
 
-- Instale e ative o [GLPI Health Check](https://github.com/JoaoPauloSCosta/glpi-health-check) compatível com GLPI 12 e com as APIs Runner e RunRepository da série 1.1. Execute um diagnóstico completo em homologação. O Health Check é um projeto de terceiros de **João Paulo S. Costa**, distribuído separadamente sob a licença GPLv3 ou posterior. O plugin do autor gera a pontuação e o histórico dos diagnósticos. O SecureUpdate usa esses resultados para detectar regressões e controlar a reabertura do GLPI. [Créditos e detalhes da integração](./README.md#créditos-ao-glpi-health-check)
+- Instale e ative o [GLPI Health Check](https://github.com/JoaoPauloSCosta/glpi-health-check) compatível com a origem e o destino escolhidos e com as APIs Runner e RunRepository da série 1.1. Execute um diagnóstico completo em homologação. O Health Check é um projeto de terceiros de **João Paulo S. Costa**, distribuído separadamente sob a licença GPLv3 ou posterior. O plugin do autor gera a pontuação e o histórico dos diagnósticos. O SecureUpdate usa esses resultados para detectar regressões e controlar a reabertura do GLPI. [Créditos e detalhes da integração](./README.md#créditos-ao-glpi-health-check)
 - Use uma conta Unix dedicada ao PHP deste GLPI. O serviço identifica essa conta pelo socket Unix. Sites que compartilham o mesmo usuário PHP compartilham essa fronteira de confiança. O serviço confia na instalação GLPI e nos plugins que ela executa.
 - Identifique a raiz da aplicação, a URL real de /status.php, todos os diretórios de dados externos e todas as unidades systemd que possam atender requisições ou gravar dados. Inclua o pool dedicado de PHP/web, timers, workers e integrações. Um cron global precisa ser separado em uma unidade dedicada ou suspenso externamente durante a janela. Um proxy pode servir uma página estática de manutenção enquanto o PHP estiver parado.
 - A raiz da aplicação, o pai, o diretório plugins usado pelo instalador e o diretório da configuração de banco precisam ser protegidos contra escrita por processos web, com dono root. Preserve as permissões de leitura do PHP e de escrita dos diretórios de dados do GLPI. Confira os caminhos com namei -l. Não aplique mudanças recursivas de proprietário na instalação.
-- O pacote aceita até 500.000 entradas e 4 GiB descompactados. São necessários PHP CLI compatível com o GLPI, Python 3.9+ com tarfile.data_filter, systemd, GNU tar e coreutils, rsync, curl e o par mariadb/mariadb-dump ou mysql/mysqldump. O servidor deve acessar a API e os downloads HTTPS públicos do GitHub. A escolha da versão exclui pré-lançamentos e permanece no ramo 12.0.
+- O pacote aceita até 500.000 entradas e 4 GiB descompactados. São necessários PHP CLI compatível com o GLPI, Python 3.9+ com tarfile.data_filter, systemd, GNU tar e coreutils, rsync, curl e o par mariadb/mariadb-dump ou mysql/mysqldump. O servidor deve acessar a API e os downloads HTTPS públicos do GitHub. A consulta agendada procura releases estáveis do ramo instalado. A consulta manual permite escolher também o próximo ramo.
 - Separe espaço para dump SQL, arquivo completo da instalação, dados externos, nova árvore e segunda base. O serviço estima o espaço de arquivos antes de prosseguir. Confirme também o espaço no servidor SQL. Mantenha uma cópia de segurança fora do servidor.
 - O banco deve utilizar a configuração literal dbdefault gerada pelo GLPI. Réplicas, clusters, volumes montados dentro da árvore da aplicação e bancos com views, triggers, eventos ou rotinas personalizados requerem outro procedimento. Diretórios externos reais podem ser declarados com --externo.
+
+## Escolher a versão do GLPI
+
+| Instalação | Manutenção | Migração pelo painel |
+| --- | --- | --- |
+| 10.0.x | Última 10.0.x estável mais recente | Última 11.0.x estável |
+| 11.0.x | Última 11.0.x estável mais recente | Última 12.0.x estável |
+| 12.0.x | Última 12.0.x estável mais recente | — |
+
+Em **Atualização → Resumo da versão → Ramo de destino**, escolha **Manutenção** ou **Migração** e clique em **Consultar versões**. Confira a origem e o destino, prepare o pacote e aprove a operação. Para passar do 10 ao 12, conclua e valide o GLPI 11 antes de fazer a segunda consulta e aprovação. Cada operação tem seu backup. A ação de rollback do painel se refere à última atualização aplicada.
+
+Antes de uma mudança de ramo, confira se o PHP da web e o PHP CLI, as extensões, o banco e os plugins ativos atendem aos requisitos do destino. O executor verifica os limites de versão declarados pelos plugins ativos e testa o núcleo de destino antes da migração do banco clonado. Após a migração, ele confere os plugins e os diagnósticos antes de reabrir. Um plugin precisa estar disponível em uma versão compatível no servidor. Faça o ensaio na VM com os mesmos plugins, dados externos e serviços da instalação real.
 
 ## Como o banco muda
 
@@ -54,7 +66,7 @@ sudo python3 /usr/local/lib/glpi-secureupdate/agent.py doctor
 6. Clique em **Atualizar estado** para ver o resultado. A preparação confere o tamanho e o SHA-256, sem interromper o GLPI. Ao concluir, o painel apresenta versão, origem, tamanho e resumo SHA-256. Cada nova preparação invalida a anterior. O mesmo Super-Admin pode aprovar enquanto a consulta e a verificação tiverem menos de 24 horas.
 7. Durante a janela de manutenção, marque a autorização e clique em **Aprovar atualização**. O serviço revalida a release e verifica novamente os bytes já guardados no servidor antes de entrar em manutenção. Se houver falha antes da reabertura, essa autorização cobre o rollback. Após a reabertura, uma reversão exige nova aprovação.
 
-## Atualizar o próprio SecureUpdate das versões 1.0.5 a 1.0.7 para 1.0.8
+## Atualizar o próprio SecureUpdate da série 1.0 para 1.1.0
 
 O instalador do pacote faz a instalação inicial e recusa sobrescrever uma instalação existente. Para atualizar o plugin já instalado, extraia a nova versão fora do site. Em homologação, confira os PHPs com o mesmo PHP CLI da instalação e execute os testes.
 

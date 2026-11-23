@@ -172,10 +172,11 @@ class Agent:
         topic="scheduled_backup" if scheduled else op
         if scheduled:
             request["scheduled"]=True
-        if options is not None:
+        if options is not None and op != "check":
             request["options"]=options
         if op=="check":
-            request["notify"]=actor==0 or self.s.get("schedule") is None
+            request["scope"] = options or "same"
+            request["notify"] = request["scope"] == "same" and (actor==0 or self.s.get("schedule") is None)
         if op in ("download","upload","apply"):
             request["plan"]=plan
         if op=="upload":
@@ -188,7 +189,9 @@ class Agent:
             due=self.s["next"]
             if op=="check" and actor==0:
                 due=schedule.next_check(self.s,time.time())
-            self.save(next=due,job=job,phase=phases.get(op,"gerenciando backups"),error="",actor=actor,prepared=prepared,
+            if op == "check" and request["scope"] != plan.get("scope", "same"):
+                plan, prepared = {}, {}
+            self.save(plan=plan,next=due,job=job,phase=phases.get(op,"gerenciando backups"),error="",actor=actor,prepared=prepared,
                       active_backup={"id":job,"op":topic} if op in BACKUP_OPS else None)
             with (STATE/("job-"+job+".log")).open("xb") as log:
                 self.process=subprocess.Popen([sys.executable,"-E","-s",str(SELF),"job",job],
@@ -208,6 +211,8 @@ class Agent:
                 "download":{"actor","ref"},"upload":{"actor","ref","size"},"apply":{"actor","ref"},"rollback":{"actor","ref"}}
         fields.update(bsave={"actor","options","confirm"},btest={"actor","ref"},bdelete={"actor","ref","confirm"},
                       brestore={"actor","ref","confirm"},bfetch={"actor","ref"},bprune={"actor","ref","confirm"},bretry={"actor","ref"})
+        if op=="check" and "scope" in req:
+            fields[op] = {"actor","scope"}
         if op=="backups" and "offset" in req:
             fields[op]={"offset"}
         if op=="settings" and "schedule" in req:
@@ -234,7 +239,11 @@ class Agent:
             return {**public,"backup_mail_pending":len(queue),"backup_mail_failed":any(e.get("failed") for e in queue),"prepared":self.s.get("prepared",{}) if packages.matches(self.s.get("prepared",{}),self.s["plan"]) else {},"step":j.get("phase",""),"pending":bool(j),"restore":last.get("clone","") if last.get("result")=="aplicada" else "",
                     "health":read(STATE/"health.json",{}),"backup_time":last.get("time",0),"last_result":last.get("result","")}
         require(type(req.get("actor")) is int and req["actor"]>0,"Sessão administrativa necessária.")
-        if op=="backup":
+        if op=="check":
+            scope = req.get("scope", "same")
+            require(scope in ("same", "next"), "Ramo inválido.")
+            self.start("check", req["actor"], options=scope)
+        elif op=="backup":
             require(req["confirm"] is True,"Confirme a manutenção para criar o backup.")
             self.start("backup",req["actor"])
         elif op in BACKUP_OPS:
@@ -264,10 +273,9 @@ class Agent:
             self.save(hours=hours,schedule=rule,browser=req["browser"],email=req["email"],next=due,
                       backup_email=mode,backup_queue=queue)
         else:
-            require(op in ("check","download","upload","apply","rollback"),"Operação inválida.")
+            require(op in ("download","upload","apply","rollback"),"Operação inválida.")
             ref=req.get("ref","")
-            if op!="check":
-                require(isinstance(ref,str) and ref.isascii() and len(ref)<=64,"Referência inválida.")
+            require(isinstance(ref,str) and ref.isascii() and len(ref)<=64,"Referência inválida.")
             self.start(op,req["actor"],ref,req.get("size"),channel)
         return {"accepted":True}
 
@@ -462,10 +470,10 @@ def main():
                     record_backup_failure(j["id"],exc)
                     raise
                 return
-            if j["op"] in ("apply","rollback","upload","download"):
+            if j["op"] in ("apply","rollback","upload","download") or (j["op"]=="check" and j.get("scope")=="next"):
                 verify_admin(host,j["actor"])
             if j["op"]=="check":
-                plan=catalog(host.inspect()["version"])
+                plan=catalog(host.inspect()["version"], scope=j.get("scope","same"))
                 write(STATE/"catalog.json",plan)
                 if plan["id"] and j.get("notify", True) and read(STORE,{**BASE})["email"]:
                     # Uma falha de SMTP não deve apagar o aviso do painel.
