@@ -1,6 +1,25 @@
 # GLPI-SecureUpdate
 Plugin para GLPI 10.0.x, 11.0.x e 12.0.x em Linux que reúne atualizações aprovadas pelo Super-Admin, verificação SHA-256 do pacote oficial, integração com o GLPI Health Check de João Paulo S. Costa e rollback. Permite agendar backups locais, em NAS ou na nuvem, gerenciar a retenção e receber resultados por e-mail.
 
+## Baixar e instalar no Linux
+
+Para a **primeira instalação** do SecureUpdate, execute o bloco abaixo no servidor do GLPI. Ele baixa o pacote deste repositório para uma pasta privada no seu diretório pessoal e inicia o instalador automático. São necessários `curl`, `tar`, `python3` e acesso a `sudo`.
+
+```bash
+revisao=a0d053074a18356a089bc2945d88670e6abbd6da
+pasta=$(mktemp -d "$HOME/glpi-secureupdate.XXXXXX") &&
+cd "$pasta" &&
+curl --fail --show-error --location \
+  "https://github.com/DevilCremes/GLPI-SecureUpdate/archive/$revisao.tar.gz" \
+  --output secureupdate.tar.gz &&
+tar -xzf secureupdate.tar.gz --strip-components=1 &&
+sudo python3 instalar.py
+```
+
+Confira a conta PHP e a lista de serviços sugeridas pelo instalador. Ao concluir, entre no GLPI com o perfil **Super-Admin** e abra **Configurar → Plugins → Atualizações do GLPI**.
+
+Para **apenas conferir a detecção**, substitua a última linha do bloco por `sudo python3 instalar.py --detectar`. Se o SecureUpdate já estiver instalado, siga o [procedimento para atualizar o próprio plugin](./LEIA-ME.md#atualizar-o-próprio-secureupdate-da-série-10-para-110).
+
 O SecureUpdate é um plugin em português para administrar atualizações e backups do **GLPI 10.0.x, 11.0.x e 12.0.x em Linux**. No próprio GLPI, o Super-Admin pode consultar o que mudou em uma versão, verificar o pacote oficial e aprovar a instalação. A consulta por novas versões pode ser agendada. **Toda atualização exige aprovação explícita.**
 
 Na versão 1.1.0, a aba **Atualização** permite escolher a manutenção no ramo instalado ou uma migração para o próximo ramo (10 → 11 ou 11 → 12). As consultas agendadas continuam no ramo instalado. A passagem de 10 para 12 exige duas operações, cada uma com pacote verificado, aprovação, backup e diagnóstico próprios.
@@ -47,14 +66,6 @@ A aba **Saúde** apresenta os resultados do diagnóstico e as regressões detect
 ## Instalação e compatibilidade
 
 O projeto foi desenvolvido para instalações pelo pacote oficial do GLPI em **um servidor Linux com systemd**, PHP CLI e um banco primário MySQL ou MariaDB. A interface PHP segue o tema do GLPI. Um serviço Python instalado fora da árvore web executa as operações autorizadas. O diagnóstico integrado requer o [GLPI Health Check](https://github.com/JoaoPauloSCosta/glpi-health-check).
-
-Para a primeira instalação, extraia o código em uma pasta administrativa fora da árvore web e execute:
-
-```bash
-sudo python3 instalar.py
-```
-
-O instalador procura o GLPI e a conta PHP, consulta os caminhos e a URL no servidor, sugere as unidades de manutenção e registra e ativa o plugin. Para visualizar a detecção primeiro, use `sudo python3 instalar.py --detectar`.
 
 O guia do pacote detalha as dependências, as permissões do banco, a configuração das unidades que devem parar durante a manutenção e o procedimento de recuperação pelo terminal. [Guia de instalação e operação](./LEIA-ME.md)
 
