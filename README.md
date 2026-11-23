@@ -48,6 +48,14 @@ A aba **Saúde** apresenta os resultados do diagnóstico e as regressões detect
 
 O projeto foi desenvolvido para instalações pelo pacote oficial do GLPI em **um servidor Linux com systemd**, PHP CLI e um banco primário MySQL ou MariaDB. A interface PHP segue o tema do GLPI. Um serviço Python instalado fora da árvore web executa as operações autorizadas. O diagnóstico integrado requer o [GLPI Health Check](https://github.com/JoaoPauloSCosta/glpi-health-check).
 
+Para a primeira instalação, extraia o código em uma pasta administrativa fora da árvore web e execute:
+
+```bash
+sudo python3 instalar.py
+```
+
+O instalador procura o GLPI e a conta PHP, consulta os caminhos e a URL no servidor, sugere as unidades de manutenção e registra e ativa o plugin. Para visualizar a detecção primeiro, use `sudo python3 instalar.py --detectar`.
+
 O guia do pacote detalha as dependências, as permissões do banco, a configuração das unidades que devem parar durante a manutenção e o procedimento de recuperação pelo terminal. [Guia de instalação e operação](./LEIA-ME.md)
 
 ## Validação

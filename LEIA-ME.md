@@ -38,7 +38,28 @@ Teste a permissão em homologação. O serviço rejeita colisões e nunca remove
 
 ## Instalação
 
-Extraia o pacote em uma pasta administrativa **fora da árvore web** e entre na pasta extraída. O exemplo pressupõe um pool PHP dedicado ao GLPI e um timer dedicado aos trabalhos agendados. Substitua os caminhos, o usuário, a URL e os nomes das unidades pelos reais. Passe as unidades na ordem em que devem parar; o serviço as retoma na ordem inversa. Inclua também o serviço que o timer dispara se ele puder estar em execução. Acrescente --externo /etc/glpi e --externo /var/lib/glpi se esses forem os caminhos reais, além de outros diretórios externos usados, como /var/log/glpi.
+Na primeira instalação, extraia o pacote em uma pasta administrativa fora da árvore web, entre na pasta extraída e execute:
+
+```bash
+sudo python3 instalar.py
+```
+
+O instalador procura instalações conhecidas e as raízes publicadas em virtual hosts Apache e Nginx. Para identificar a conta PHP, lê pools FPM pelo nome da instalação ou pelo socket associado ao site. Em Apache com mod_php no Debian/Ubuntu, consulta o virtual host e a conta do Apache. Se encontrar mais de um resultado, pede a escolha no terminal. O PHP CLI roda com a identidade Unix do site para ler a versão, a URL base, os diretórios configurados e o estado dos plugins.
+
+Revise a ordem de parada sugerida. Ela será usada **posteriormente** nos backups e atualizações. Confira timers, workers e qualquer cron externo ao systemd. Uma unidade Apache ou PHP-FPM compartilhada afeta todos os sites atendidos por ela. Para um ambiente com outros sites, informe a unidade e a conta dedicadas ao GLPI.
+
+| Necessidade | Comando ou opção |
+| --- | --- |
+| Conferir a detecção e os utilitários que faltam | `sudo python3 instalar.py --detectar` |
+| Instalar dependências de sistema ausentes por APT ou DNF | `sudo python3 instalar.py --instalar-dependencias` |
+| Executar em lote depois da revisão da lista de unidades | `sudo python3 instalar.py --aceitar-unidades --instalar-dependencias` |
+| Selecionar entre instalações ou contas PHP | `--glpi /caminho/do/glpi`, `--usuario-php conta` e `--php /caminho/do/php` |
+| Ajustar URL, unidades ou raízes externas personalizadas | `--url-status URL`, `--parar UNIDADE` e `--externo DIRETORIO`. As duas últimas opções podem ser repetidas. |
+| Identificar o administrador para o registro no GLPI 10 | `--admin-glpi LOGIN` quando houver mais de um Super-Admin elegível. |
+
+Em lote, um dado ambíguo interrompe a instalação com a opção a informar. A detecção reconhece raízes convencionais de configuração, dados, log e cache utilizadas pelo GLPI. Declare cada raiz externa personalizada com `--externo`. A instalação de utilitários cobre clientes de banco, curl, rsync, tar e coreutils. PHP CLI compatível, Python, systemd e o plugin de terceiros GLPI Health Check continuam sendo pré-requisitos conforme a seção anterior.
+
+Exemplo com valores explícitos para um pool dedicado e seu cron:
 
 ```bash
 sudo python3 instalar.py \
@@ -52,7 +73,7 @@ sudo python3 instalar.py \
 
 O instalador verifica a sintaxe dos PHPs com o binário indicado por --php, copia o painel para plugins/secureupdate e instala o executor fora do site. A configuração do host fica em /etc/glpi-secureupdate/config.json. Os caminhos autorizados para escrita também constam da unidade systemd. Ajuste ambos ao mudar caminhos.
 
-1. Em **Configurar > Plugins**, instale e ative **Atualizações do GLPI**. Abra a configuração do plugin com o perfil nativo Super-Admin ativo (ID 4 em instalações oficiais). A troca para outro perfil bloqueia acesso e aprovação.
+1. O instalador executa o registro e a ativação do SecureUpdate pelo console do GLPI e verifica o estado do serviço. Se o registro ficar pendente, corrija o erro indicado e repita o mesmo comando. Uma instalação existente segue o procedimento de atualização do próprio plugin descrito abaixo. Em **Configurar > Plugins**, abra a configuração de **Atualizações do GLPI** com o perfil nativo Super-Admin ativo (ID 4 em instalações oficiais). A troca para outro perfil bloqueia acesso e aprovação.
 2. No servidor, execute o diagnóstico inicial. Esse comando executa verificações e grava um diagnóstico no histórico do GLPI Health Check.
 
 ```bash

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Instala o painel e o serviço local. Execute a partir do pacote extraído fora do site."""
 import argparse
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,8 @@ import shutil
 import subprocess
 import sys
 from urllib.parse import urlsplit
+
+import detectar_instalacao as detect
 
 HERE=Path(__file__).resolve().parent
 LIB=Path("/usr/local/lib/glpi-secureupdate")
@@ -25,55 +28,158 @@ def privileged_dir(path):
         m=p.stat()
         check(m.st_uid==0 and m.st_mode & 0o022==0,"Proteja o dono e as permissões contra escrita sem root: "+str(p))
 
-def main():
-    p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--glpi",required=True,help="Raiz do GLPI (contém bin/console)")
-    p.add_argument("--usuario-php",required=True,help="Conta Unix do pool PHP deste GLPI")
-    p.add_argument("--url-status",required=True,help="URL real do GLPI terminada em /status.php")
-    p.add_argument("--parar",action="append",required=True,help="Unidade systemd dedicada a parar. Repita para todos os gravadores e ingressos.")
-    p.add_argument("--externo",action="append",default=[],help="Diretório real de dados/configuração fora do GLPI. Repetível.")
-    p.add_argument("--php",default="/usr/bin/php")
-    a=p.parse_args()
-    check(sys.platform=="linux" and os.geteuid()==0,"Execute em Linux com sudo.")
-    import tarfile
-    check(sys.version_info>=(3,9) and hasattr(tarfile,"data_filter"),"Python 3.9+ com tarfile.data_filter necessário.")
-    os.environ["PATH"]="/usr/sbin:/usr/bin:/sbin:/bin"
-    php=Path(a.php)
-    check(php.is_absolute() and php.is_file() and os.access(php,os.X_OK),"Informe o caminho absoluto do PHP CLI.")
-    php=php.resolve(strict=True)
+def choose(value, flag, message, candidates=()):
+    if value:
+        return value
+    if len(candidates) == 1:
+        return str(candidates[0])
+    hint = " Opções: " + ", ".join(map(str, candidates)) if candidates else ""
+    if sys.stdin.isatty():
+        result = input(message + hint + " > ").strip()
+        if result:
+            return result
+    raise SystemExit(message + hint + " Informe " + flag + ".")
+
+
+def verified_php(value):
+    php = Path(value)
+    check(php.is_absolute() and php.is_file() and os.access(php,os.X_OK),
+          "PHP CLI ausente. Instale o CLI correspondente ao PHP web ou informe --php.")
+    php = php.resolve(strict=True)
     privileged_dir(php.parent)
     check(php.stat().st_uid==0 and not php.stat().st_mode & 0o022,"Proteja o executável PHP contra escrita sem root.")
-    a.php=str(php)
-    py=sys.executable
-    app=Path(a.glpi)
+    return str(php)
+
+
+def php_user(name):
+    try:
+        account = pwd.getpwnam(name)
+    except KeyError:
+        raise SystemExit("Conta Unix inexistente. Informe --usuario-php.") from None
+    check(account.pw_uid != 0, "O PHP do GLPI deve usar uma conta dedicada sem root.")
+    return account
+
+
+def require_tools(allow_install, preview):
+    missing = detect.missing_dependencies()
+    if not missing:
+        return
+    print("Dependências ausentes: " + ", ".join(missing), flush=True)
+    if preview:
+        return
+    if not allow_install and sys.stdin.isatty():
+        allow_install = input("Instalar esses utilitários pelo gerenciador do sistema? [s/N] ").strip().lower() in ("s","sim")
+    check(allow_install, "Para instalar os utilitários ausentes, repita com --instalar-dependencias.")
+    if shutil.which("apt-get"):
+        command = ["apt-get", "install", "-y", "--no-install-recommends", *missing]
+    elif shutil.which("dnf"):
+        command = ["dnf", "install", "-y", *["mariadb" if p=="mariadb-client" else p for p in missing]]
+    else:
+        raise SystemExit("Instale os pacotes indicados pelo gerenciador da distribuição.")
+    subprocess.run(command, check=True)
+    check(not detect.missing_dependencies(), "O gerenciador não forneceu todos os utilitários necessários.")
+
+
+def maintenance_units(app, args, apache, versions):
+    if args.parar:
+        return args.parar
+    loaded = detect.loaded_units()
+    units, has_web = detect.unit_suggestions(app.name, loaded)
+    if apache and "apache2.service" in loaded and not has_web:
+        units.append("apache2.service")
+        has_web = True
+    if not has_web and len(versions) == 1:
+        fpm = f"php{versions[0]}-fpm.service"
+        if fpm in loaded:
+            units.append(fpm)
+            has_web = True
+    for unit in list(units):
+        if unit.endswith((".timer", ".socket")):
+            triggers = subprocess.check_output(["systemctl","show","-p","Triggers","--value",unit], text=True).split()
+            for service in triggers:
+                if service.endswith(".service") and service not in units:
+                    units.insert(units.index(unit) + 1, service)
+    # Stop all triggers before their workers.
+    units.sort(key=lambda u: not u.endswith((".timer", ".socket")))
+    print("Unidades de manutenção sugeridas:", ", ".join(units) or "nenhuma")
+    if "cron.service" in loaded or "crond.service" in loaded:
+        print("Cron global carregado. Confira se há tarefas do GLPI fora das unidades listadas.")
+    if args.detectar:
+        if not has_web:
+            print("Ingresso web sem associação confirmada. Informe --parar ao instalar.")
+        return units
+    print("Confira se a lista cobre o ingresso, cron, timers, workers e integrações desta instalação.")
+    if apache or any(re.fullmatch(r"php\d+\.\d+-fpm\.service", u) for u in units):
+        print("A unidade web pode atender outros sites. Confirme que ela e a conta PHP são dedicadas ao GLPI.")
+    if has_web and args.aceitar_unidades:
+        return units
+    if not sys.stdin.isatty():
+        raise SystemExit("Informe --parar para cada unidade ou revise --detectar e use --aceitar-unidades quando o ingresso for identificado.")
+    answer = input("Digite a lista completa em ordem de parada" + (" ou Enter para aceitar" if has_web else "") + " > ").strip()
+    if answer:
+        return answer.split()
+    check(has_web, "Informe também a unidade que atende ao GLPI.")
+    return units
+
+
+def read_settings(a):
+    app = Path(choose(a.glpi, "--glpi", "Qual a raiz do GLPI?", detect.installations() if not a.glpi else ()))
     privileged_dir(app)
     privileged_dir(app/"plugins")
     check((app/"bin/console").is_file(),"bin/console ausente.")
     check(not HERE.is_relative_to(app),"Extraia o pacote fora da árvore do GLPI.")
-    for f in ["curl","rsync","systemctl","sha256sum","tar","cp",a.php]:
-        check(shutil.which(f) is not None,"Comando ausente: "+f)
-    check(any(all(shutil.which(b) for b in pair) for pair in (("mariadb","mariadb-dump"),("mysql","mysqldump"))),"Instale o cliente e o utilitário de dump do banco.")
-    check(pwd.getpwnam(a.usuario_php).pw_uid!=0,"O pool PHP precisa de um usuário dedicado sem root.")
-    check(urlsplit(a.url_status).scheme in ("http","https") and urlsplit(a.url_status).path.endswith("/status.php"),"URL /status.php inválida.")
-    for u in a.parar:
+    pools = detect.pool_candidates(app)
+    apache = detect.apache_account(app)
+    names = sorted({u for u, _ in pools} | ({apache} if apache else set()))
+    user = choose(a.usuario_php, "--usuario-php", "Qual a conta Unix que executa o PHP deste GLPI?", names)
+    versions = sorted({v for u, v in pools if u == user and v})
+    php_names = [f"/usr/bin/php{v}" for v in versions] or [shutil.which("php") or "/usr/bin/php"]
+    php = verified_php(choose(a.php, "--php", "Qual o executável PHP CLI?", php_names))
+    context = detect.php_context(app, php_user(user))
+    data = detect.probe(php, context)
+    url = choose(a.url_status, "--url-status", "Qual a URL de status do GLPI?",
+                 [data["url"].rstrip("/") + "/status.php"] if data["url"] else [])
+    parsed = urlsplit(url)
+    check(parsed.scheme in ("http","https") and parsed.hostname and not parsed.username and not parsed.password
+          and not parsed.fragment and not parsed.query and parsed.path.endswith("/status.php")
+          and all(ord(ch) > 32 and ord(ch) != 127 for ch in url), "URL /status.php inválida.")
+    units = maintenance_units(app, a, apache and user == apache, versions)
+    check(len(set(units)) == len(units), "Unidade repetida.")
+    for u in units:
         check(re.fullmatch(r"[A-Za-z0-9_@][\w.@:-]*\.(service|socket|timer)",u),"Nome de unidade inválido.")
         check(subprocess.check_output(["systemctl","show","-p","LoadState","--value",u],text=True).strip()=="loaded","Unidade não carregada: "+u)
-    for raw in a.externo:
-        path=Path(raw)
-        check(path.is_dir() and path.resolve()==path and len(path.parts)>=3,"Diretório externo inválido.")
+    external = detect.external_roots(app, data["dirs"], a.externo)
+    for raw in external:
+        path = Path(raw)
+        check(path.is_dir() and path.resolve()==path and len(path.parts)>=3,"Diretório externo inválido: "+raw)
+        protected = [app, Path("/var/lib/glpi-secureupdate")]
+        check(not any(path.is_relative_to(p) or p.is_relative_to(path) for p in protected)
+              and not any(Path(other).is_relative_to(path) for other in external if other != raw),
+              "Diretórios externos sobrepostos ao GLPI, ao estado ou entre si.")
         privileged_dir(path.parent)
+    config = dict(app=str(app),web_user=user,php=php,status_url=url,units=units,external=external)
+    print(f"GLPI {data['version']} em {app} | PHP {php} ({user})")
+    print("Status:", url, "| Diretórios externos:", ", ".join(external) or "nenhum")
+    print("Ordem de parada:", ", ".join(units) or "a definir")
+    if data["states"].get("healthcheck") != 1:
+        print("GLPI Health Check de João Paulo S. Costa ausente ou inativo. Ative-o antes de atualizar o GLPI.")
+    return config, data, context
+
+
+def install_files(config):
+    app = Path(config["app"])
+    py = sys.executable
     destinations=[app/"plugins/secureupdate",LIB,CFG,UNIT]
     for dest in destinations: check(not dest.exists() and not dest.is_symlink(),"Destino já existe: "+str(dest))
     for source in (HERE/"secureupdate",HERE/"service",HERE/"secureupdate.service.in"):
         check(not source.is_symlink() and not any(item.is_symlink() for item in source.rglob("*")),"Link inesperado no pacote.")
     for path in (HERE/"secureupdate").rglob("*.php"):
-        subprocess.run([a.php,"-n","-l",str(path)],check=True)
+        subprocess.run([config["php"],"-n","-l",str(path)],check=True)
     for path in (HERE/"service").glob("*.py"):
         compile(path.read_bytes(),str(path),"exec")
-    rw=[str(app.parent),*a.externo]
+    rw=[str(app.parent),*config["external"]]
     for path in [*rw,py]:
         check(re.fullmatch(r"/[A-Za-z0-9_./+-]+",path),"Use caminhos de serviço sem espaços/metacaracteres.")
-    config=dict(app=str(app),web_user=a.usuario_php,php=a.php,status_url=a.url_status,units=a.parar,external=a.externo)
     committed=[]
     try:
         for src,dest in [(HERE/"secureupdate",destinations[0]),(HERE/"service",LIB)]:
@@ -91,6 +197,7 @@ def main():
         with UNIT.open("x") as unit_file:
             committed.append(UNIT)
             unit_file.write(template.replace("@PYTHON@",py).replace("@RW@"," ".join(rw)))
+        (CFG/"registro-pendente").touch(mode=0o600)
         subprocess.run(["systemctl","daemon-reload"],check=True)
         subprocess.run(["systemctl","enable","--now",UNIT.name],check=True)
     except BaseException:
@@ -101,7 +208,103 @@ def main():
             else: path.unlink(missing_ok=True)
         if UNIT in committed: subprocess.run(["systemctl","daemon-reload"],check=False)
         raise
-    print("Serviço instalado. No GLPI, instale e ative Atualizações do GLPI em Configurar > Plugins.")
 
-if __name__=="__main__":
-    main()
+
+def registration_user(data, explicit, config, context):
+    if data["version"].startswith("10.") and data["states"].get("secureupdate") not in (1, 4):
+        selected = choose(explicit, "--admin-glpi", "Qual o login do administrador do GLPI para registrar o plugin?",
+                      [data["admin"]] if data.get("admin") else [])
+        if selected != data.get("admin"):
+            matched = detect.probe(config["php"], context, selected)
+            check(matched.get("admin") == selected, "O login informado precisa ser um Super-Admin ativo.")
+        return selected
+    return None
+
+
+def register(config, data, context, admin):
+    cli = [config["php"], "bin/console", "--no-interaction", "--no-ansi"]
+    state = data["states"].get("secureupdate")
+    if state not in (1, 4):
+        command = [*cli, "plugin:install", "secureupdate"]
+        if admin:
+            command.append("--username=" + admin)
+        subprocess.run(command, check=True, **context)
+        state = detect.probe(config["php"], context)["states"].get("secureupdate")
+    if state != 1:
+        subprocess.run([*cli, "plugin:activate", "secureupdate"], check=True, **context)
+    check(detect.probe(config["php"], context)["states"].get("secureupdate") == 1,
+          "A ativação não foi confirmada no GLPI. Corrija o erro e repita o instalador.")
+    subprocess.run(["systemctl","is-active","--quiet",UNIT.name], check=True)
+    (CFG/"registro-pendente").unlink()
+    print("SecureUpdate instalado e ativo. Entre no GLPI como Super-Admin e abra Configurar > Plugins.")
+
+
+def install(a):
+    pending = CFG/"registro-pendente"
+    if CFG.exists():
+        privileged_dir(CFG)
+        if not pending.is_file():
+            raise SystemExit("Já existe uma instalação ou configuração local. Para trocar de versão, siga o manual de atualização do próprio SecureUpdate.")
+        check(not pending.is_symlink(), "Marcador de instalação inválido.")
+        config = json.loads((CFG/"config.json").read_text())
+        app = Path(config["app"])
+        check(not a.glpi or str(app) == a.glpi, "O registro pendente pertence a outra instalação.")
+        privileged_dir(app)
+        verified_php(config["php"])
+        context = detect.php_context(app, php_user(config["web_user"]))
+        data = detect.probe(config["php"], context)
+        print("Retomando o registro do SecureUpdate em", app)
+        admin = registration_user(data, a.admin_glpi, config, context)
+        check(UNIT.is_file() and LIB.is_dir() and (app/"plugins/secureupdate/setup.php").is_file(),
+              "Arquivos da instalação pendente incompletos. Verifique as pastas do painel e do executor.")
+        subprocess.run(["systemctl","daemon-reload"], check=True)
+        subprocess.run(["systemctl","enable","--now",UNIT.name], check=True)
+    else:
+        config, data, context = read_settings(a)
+        admin = registration_user(data, a.admin_glpi, config, context)
+        require_tools(a.instalar_dependencias, False)
+        install_files(config)
+    print("Registrando e ativando o plugin. Se esta etapa falhar, repita o instalador para retomá-la.", flush=True)
+    register(config, data, context, admin)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--glpi", help="Raiz do GLPI")
+    parser.add_argument("--usuario-php", help="Conta Unix do PHP deste site")
+    parser.add_argument("--php", help="Caminho do PHP CLI")
+    parser.add_argument("--url-status", help="URL do GLPI terminada em /status.php")
+    parser.add_argument("--parar", action="append", help="Unidade dedicada, em ordem de parada (repetível)")
+    parser.add_argument("--externo", action="append", default=[], help="Raiz externa dedicada (repetível)")
+    parser.add_argument("--admin-glpi", help="Login do administrador para registrar o plugin no GLPI 10")
+    parser.add_argument("--detectar", action="store_true", help="Mostrar a configuração sem instalar")
+    parser.add_argument("--aceitar-unidades", action="store_true", help="Aceitar em lote as unidades de manutenção identificadas")
+    parser.add_argument("--instalar-dependencias", action="store_true", help="Instalar utilitários ausentes via APT ou DNF")
+    a = parser.parse_args()
+    check(sys.platform=="linux" and os.geteuid()==0,"Execute em Linux com sudo.")
+    import tarfile
+    check(sys.version_info >= (3,9) and hasattr(tarfile,"data_filter"), "Python 3.9+ com tarfile.data_filter necessário.")
+    os.environ["PATH"] = "/usr/sbin:/usr/bin:/sbin:/bin"
+    check(shutil.which("systemctl"), "systemctl ausente. É necessário Linux com systemd.")
+    if a.detectar:
+        require_tools(False, True)
+        config, data, _ = read_settings(a)
+        if data["version"].startswith("10.") and not (a.admin_glpi or data.get("admin")):
+            print("O registro inicial no GLPI 10 pode exigir --admin-glpi LOGIN.")
+        return
+    fd = os.open("/run/glpi-secureupdate-instalar.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit("Outra instalação do SecureUpdate está em andamento.")
+        install(a)
+    finally:
+        os.close(fd)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, OSError, subprocess.SubprocessError) as exc:
+        raise SystemExit(f"Instalação interrompida: {exc}") from None
