@@ -8,6 +8,7 @@ from pathlib import Path
 import pwd
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from urllib.parse import urlsplit
@@ -22,11 +23,55 @@ UNIT=Path("/etc/systemd/system/glpi-secureupdate.service")
 def check(ok,msg):
     if not ok: raise SystemExit(msg)
 
+def permission_details(path, info):
+    mode = stat.S_IMODE(info.st_mode)
+    return f"{path} (UID={info.st_uid}, GID={info.st_gid}, modo={mode:04o})"
+
+
 def privileged_dir(path):
     check(path.resolve()==path and path.is_dir(),"Diretório real necessário: "+str(path))
     for p in [path,*path.parents]:
         m=p.stat()
-        check(m.st_uid==0 and m.st_mode & 0o022==0,"Proteja o dono e as permissões contra escrita sem root: "+str(p))
+        if m.st_uid != 0 or m.st_mode & 0o022:
+            raise SystemExit(f"{permission_details(p, m)} precisa pertencer a root e permitir escrita apenas ao dono. "
+                             "Revise este caminho com namei -l antes de repetir a instalação.")
+
+def installation_permissions(app, preview):
+    privileged_dir(app.parent)
+    for path in (app, app/"plugins"):
+        check(path.is_absolute() and path.is_dir() and path.resolve() == path,
+              "Diretório real necessário: " + str(path))
+
+    for path in (app, app/"plugins"):
+        # The parent is already trusted. Pin the directory across the confirmation.
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            info = os.fstat(fd)
+            mode = stat.S_IMODE(info.st_mode)
+            if info.st_uid == 0 and not mode & 0o022:
+                continue
+            proposed = mode & ~0o022
+            detail = permission_details(path, info)
+            message = (f"{detail} precisa de UID 0 e modo {proposed:04o} para o SecureUpdate. "
+                       f"O ajuste afeta somente esse diretório e preserva o grupo {info.st_gid}.")
+            # Transferring ownership must not remove read/traverse access for the
+            # previous owner. Nontrivial ACLs and special mode bits need local review.
+            restricted_owner = info.st_uid != 0 and (mode & 0o055) != 0o055
+            if restricted_owner or mode & 0o7000 or any(
+                    name.startswith("system.posix_acl_") for name in os.listxattr(fd)):
+                raise SystemExit(message + " Revise manualmente as permissões de acesso do usuário PHP e as ACLs.")
+            if preview or not sys.stdin.isatty():
+                raise SystemExit(message + " Execute o instalador em um terminal interativo para revisar o ajuste.")
+            print(message, flush=True)
+            if input("Aplicar este ajuste sem recursão e continuar? [s/N] ").strip().lower() not in ("s","sim"):
+                raise SystemExit("Ajuste recusado para " + str(path))
+            if info.st_uid != 0:
+                os.fchown(fd, 0, -1)
+            os.fchmod(fd, proposed)
+        finally:
+            os.close(fd)
+        privileged_dir(path)
+
 
 def choose(value, flag, message, candidates=()):
     if value:
@@ -124,10 +169,10 @@ def maintenance_units(app, args, apache, versions):
 
 def read_settings(a):
     app = Path(choose(a.glpi, "--glpi", "Qual a raiz do GLPI?", detect.installations() if not a.glpi else ()))
-    privileged_dir(app)
-    privileged_dir(app/"plugins")
-    check((app/"bin/console").is_file(),"bin/console ausente.")
+    check((app/"bin/console").is_file() and (app/"vendor/autoload.php").is_file(),
+          "A raiz selecionada precisa conter bin/console e vendor/autoload.php.")
     check(not HERE.is_relative_to(app),"Extraia o pacote fora da árvore do GLPI.")
+    installation_permissions(app, a.detectar)
     pools = detect.pool_candidates(app)
     apache = detect.apache_account(app)
     names = sorted({u for u, _ in pools} | ({apache} if apache else set()))

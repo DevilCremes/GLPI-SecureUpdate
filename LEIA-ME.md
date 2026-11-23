@@ -46,6 +46,8 @@ sudo python3 instalar.py
 
 O instalador procura instalações conhecidas e as raízes publicadas em virtual hosts Apache e Nginx. Para identificar a conta PHP, lê pools FPM pelo nome da instalação ou pelo socket associado ao site. Em Apache com mod_php no Debian/Ubuntu, consulta o virtual host e a conta do Apache. Se encontrar mais de um resultado, pede a escolha no terminal. O PHP CLI roda com a identidade Unix do site para ler a versão, a URL base, os diretórios configurados e o estado dos plugins.
 
+Se a instalação parar por permissões da raiz do GLPI ou de `plugins/`, o instalador mostra o caminho, o UID, o GID e o modo atuais. Em um terminal interativo, ele oferece ajustar apenas o diretório indicado para dono root, mantendo o grupo e removendo a escrita de grupo e outros. Confira o caminho antes de responder `s`. Em `--detectar`, a verificação apenas informa a pendência. Diretórios ancestrais, links, ACLs e permissões especiais exigem revisão local. Use `namei -l /var/www/glpi/plugins` para inspecionar cada componente do caminho padrão.
+
 Revise a ordem de parada sugerida. Ela será usada **posteriormente** nos backups e atualizações. Confira timers, workers e qualquer cron externo ao systemd. Uma unidade Apache ou PHP-FPM compartilhada afeta todos os sites atendidos por ela. Para um ambiente com outros sites, informe a unidade e a conta dedicadas ao GLPI.
 
 | Necessidade | Comando ou opção |
