@@ -74,3 +74,23 @@ class InstallPermissions(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "ACLs"):
                 instalar.installation_permissions(self.app, preview=False)
             ask.assert_not_called()
+
+    def test_english_yes_approves_nonrecursive_permission_repair(self):
+        for answer in ("y", " YES "):
+            with self.subTest(answer=answer):
+                self.app.chmod(0o777)
+                with patch.object(instalar, "privileged_dir"), patch("sys.stdin.isatty", return_value=True), \
+                     patch("builtins.input", return_value=answer), patch("os.fchown"):
+                    instalar.installation_permissions(self.app, preview=False)
+                self.assertEqual(stat.S_IMODE(self.app.stat().st_mode), 0o755)
+                self.assertEqual(stat.S_IMODE(self.data.stat().st_mode), 0o700)
+
+    def test_empty_or_unrecognized_answer_does_not_authorize_repair(self):
+        for answer in ("", "no", "talvez"):
+            with self.subTest(answer=answer), patch.object(instalar, "privileged_dir"), \
+                 patch("sys.stdin.isatty", return_value=True), patch("builtins.input", return_value=answer), \
+                 patch("os.fchown") as chown, patch("os.fchmod") as chmod:
+                with self.assertRaisesRegex(SystemExit, "Ajuste recusado"):
+                    instalar.installation_permissions(self.app, preview=False)
+                chown.assert_not_called()
+                chmod.assert_not_called()

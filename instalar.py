@@ -23,6 +23,10 @@ UNIT=Path("/etc/systemd/system/glpi-secureupdate.service")
 def check(ok,msg):
     if not ok: raise SystemExit(msg)
 
+def confirm(message):
+    return input(f"{message} [s/y/N] ").strip().lower() in ("s", "sim", "y", "yes")
+
+
 def permission_details(path, info):
     mode = stat.S_IMODE(info.st_mode)
     return f"{path} (UID={info.st_uid}, GID={info.st_gid}, modo={mode:04o})"
@@ -63,7 +67,7 @@ def installation_permissions(app, preview):
             if preview or not sys.stdin.isatty():
                 raise SystemExit(message + " Execute o instalador em um terminal interativo para revisar o ajuste.")
             print(message, flush=True)
-            if input("Aplicar este ajuste sem recursão e continuar? [s/N] ").strip().lower() not in ("s","sim"):
+            if not confirm("Aplicar este ajuste sem recursão e continuar?"):
                 raise SystemExit("Ajuste recusado para " + str(path))
             if info.st_uid != 0:
                 os.fchown(fd, 0, -1)
@@ -113,7 +117,7 @@ def require_tools(allow_install, preview):
     if preview:
         return
     if not allow_install and sys.stdin.isatty():
-        allow_install = input("Instalar esses utilitários pelo gerenciador do sistema? [s/N] ").strip().lower() in ("s","sim")
+        allow_install = confirm("Instalar esses utilitários pelo gerenciador do sistema?")
     check(allow_install, "Para instalar os utilitários ausentes, repita com --instalar-dependencias.")
     if shutil.which("apt-get"):
         command = ["apt-get", "install", "-y", "--no-install-recommends", *missing]

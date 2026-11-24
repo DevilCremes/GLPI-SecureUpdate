@@ -86,6 +86,13 @@ class Detection(unittest.TestCase):
             instalar.require_tools(True, False)
             run.assert_called_once_with(["apt-get","install","-y","--no-install-recommends","rsync"],check=True)
 
+    def test_english_yes_approves_interactive_dependency_install(self):
+        with patch("sys.stdin.isatty", return_value=True), patch("builtins.input", return_value="Y"), \
+             patch.object(detect, "missing_dependencies", side_effect=[["rsync"], []]), \
+             patch("shutil.which", return_value="apt-get"), patch.object(subprocess, "run") as run:
+            instalar.require_tools(False, False)
+            run.assert_called_once_with(["apt-get", "install", "-y", "--no-install-recommends", "rsync"], check=True)
+
     def test_probe_reports_only_needed_fields_and_checks_execution(self):
         data = {"version":"11.0.1","states":{},"url":"","dirs":[]}
         with patch.object(subprocess,"run") as run:
