@@ -39,7 +39,7 @@ O **SecureUpdate** compara esses resultados antes e depois da migração. També
 
 ## Interface
 
-A versão 1.0.8 adota o Console operacional nas cinco abas. Escolha uma aba no menu lateral e uma seção no índice para consultar seus detalhes. A aba Backups abre no catálogo. Em telas pequenas, os menus se reorganizam acima do conteúdo.
+Nas abas **Atualização** e **Backups**, uma barra acompanha o trabalho em curso e um console recolhível registra as etapas. O resultado aparece automaticamente quando o executor termina. Escolha uma aba no menu lateral e uma seção no índice para consultar seus detalhes. A aba Backups abre no catálogo. Em telas pequenas, os menus se reorganizam acima do conteúdo.
 
 ## Como funciona uma atualização
 

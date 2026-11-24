@@ -1,3 +1,4 @@
+{% if not fragment %}
 <link rel="stylesheet" href="{{ css_url }}">
 {% if js_url %}<script src="{{ js_url }}" defer></script>{% endif %}
 <main class="gu">
@@ -6,6 +7,18 @@
 <span class="gu-admin">Super-Admin</span></aside>
 <div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
 <h1>{{ page_title }}</h1>
+{% if tab in ['atualizacao','backups'] %}
+<section class="gu-monitor" {% if not watch %}hidden{% endif %} data-url="{{ panel_url }}?andamento=1" aria-label="Andamento da operação">
+    <div class="gu-monitor-head"><strong role="status">{{ phase|default('Conectando ao executor') }}</strong><span class="gu-meter-text"></span></div>
+    <progress aria-label="Progresso da operação"></progress>
+    <p class="gu-request-feedback" role="alert" hidden></p>
+    <p class="gu-connection" role="status" hidden></p>
+    <details open><summary>Console da operação</summary><ol role="log" aria-label="Eventos da operação"></ol></details>
+    <noscript><a href="{{ panel_url }}?aba={{ tab }}">Consultar andamento</a></noscript>
+</section>
+{% endif %}
+{% endif %}
+<div class="gu-results" data-tab="{{ tab }}" data-job="{{ job }}" data-busy="{{ busy ? '1' : '0' }}">
 {% if msg %}<p class="gu-msg" role="status">{{ msg }}</p>{% endif %}
 {% if error %}<p class="gu-error alert alert-danger" role="alert">{{ error }}</p>{% endif %}
 {% if tab == 'atualizacao' %}
@@ -14,7 +27,6 @@
     <div><dt>Versão disponível</dt><dd>{% if available %}{{ target }}{% else %}—{% endif %}</dd></div>
     <div><dt>Urgência</dt><dd>{% if available %}<span class="gu-badge" data-level="{{ urgency|lower }}">{{ urgency }}</span>{% else %}—{% endif %}</dd></div>
 </dl>
-{% if busy %}<p class="gu-msg" role="status">Operação em andamento · {{ phase }}. <a href="{{ panel_url }}">Atualizar estado</a></p>{% endif %}
 <div class="gu-ledger">
 <h2 class="gu-ledger-title">Pacote e aprovação</h2>
 <div class="gu-split"><nav class="gu-index" aria-label="Pacote e aprovação" hidden></nav>
@@ -90,7 +102,6 @@
 {% if connected and vault %}
 {% if backup_result %}<p role="status">{{ backup_result.message }} Trabalho <code>{{ backup_result.job }}</code>.</p>{% endif %}
 <dl class="gu-strip"><div><dt>Cópias</dt><dd>{{ vault.total }}</dd></div><div><dt>Destino</dt><dd>{% for d in vault.destinations %}{% if d.id == policy.destination %}{{ d.label }}{% endif %}{% endfor %}</dd></div><div><dt>Próximo backup</dt><dd>{{ backup_next|default('Agendamento desativado') }}</dd></div></dl>
-{% if busy %}<p role="status">Operação em andamento · {{ phase }}. <a href="{{ panel_url }}?aba=backups">Atualizar estado</a></p>{% endif %}
 <div class="gu-ledger">
 <h2 class="gu-ledger-title">Armazenamento e cópias</h2>
 <div class="gu-split"><nav class="gu-index" aria-label="Armazenamento e cópias" hidden></nav>
@@ -291,4 +302,5 @@
 </div></div></div>
 {% else %}<p>Confira o serviço <code>glpi-secureupdate.service</code> no servidor.</p>{% endif %}
 {% endif %}
-</div></main>
+</div>
+{% if not fragment %}</div></main>{% endif %}

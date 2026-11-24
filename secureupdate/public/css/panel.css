@@ -131,3 +131,14 @@
  .gu-index {display:flex;flex-wrap:wrap;border-inline-end:0;border-bottom:1px solid var(--line)}
  .gu-index a {border:0}
 }
+
+.gu-monitor {margin:0 0 1rem;padding:.9rem 1rem;border:1px solid var(--line);border-radius:.5rem;background:var(--surface)}
+.gu-monitor-head {display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+.gu-meter-text,.gu-monitor time {font-variant-numeric:tabular-nums;color:var(--muted)}
+.gu-monitor progress {display:block;width:100%;height:.65rem;margin:.65rem 0;accent-color:var(--tblr-primary,Highlight)}
+.gu-monitor progress[hidden] {display:none}
+.gu-monitor summary {cursor:pointer;width:fit-content}
+.gu-monitor ol {list-style:none;max-height:12rem;overflow:auto;margin:.5rem 0 0;padding:.6rem .8rem;background:var(--tblr-bg-surface-secondary,Canvas);border-inline-start:2px solid var(--line);font: .875rem/1.65 var(--tblr-font-monospace,monospace)}
+.gu-monitor time {margin-inline-end:.8rem}
+.gu-monitor .gu-connection {margin:.5rem 0;color:var(--muted)}
+.gu-monitor.gu-attention {border-inline-start:3px solid var(--tblr-warning, currentColor)}

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Protocolo local do plugin. O serviço só aceita operações predefinidas."""
+import activity
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import backup_mail
@@ -185,6 +186,7 @@ class Agent:
         ticket=STATE/("request-"+job+".json")
         write(ticket,request)
         try:
+            activity.begin(STATE, job, op)
             phases={"backup":"criando backup","check":"verificando","download":"validando pacote","upload":"validando pacote","apply":"atualizando","rollback":"revertendo"}
             prepared={} if op in ("download","upload","apply","rollback") else receipt
             due=self.s["next"]
@@ -215,7 +217,7 @@ class Agent:
     def dispatch(self,req,channel=None):
         require(isinstance(req,dict),"Mensagem inválida.")
         op=req.get("op")
-        fields={"backups":set(),"backup":{"actor","confirm"},"debug":set(),"notice":set(),"status":set(),"check":{"actor"},"settings":{"actor","hours","browser","email"},
+        fields={"activity":set(),"backups":set(),"backup":{"actor","confirm"},"debug":set(),"notice":set(),"status":set(),"check":{"actor"},"settings":{"actor","hours","browser","email"},
                 "download":{"actor","ref"},"upload":{"actor","ref","size"},"apply":{"actor","ref"},"rollback":{"actor","ref"}}
         fields.update(bregister={"actor","options","confirm"},bsave={"actor","options","confirm"},btest={"actor","ref"},bdelete={"actor","ref","confirm"},
                       brestore={"actor","ref","confirm"},bfetch={"actor","ref"},bprune={"actor","ref","confirm"},bretry={"actor","ref"})
@@ -232,6 +234,8 @@ class Agent:
             offset=req.get("offset",0)
             require(type(offset) is int and offset>=0,"Página inválida.")
             return vault.public_state(STATE,offset)
+        if op=="activity":
+            return activity.snapshot(STATE, self.s, read(JOURNAL,{}), self.mail_task is not None)
         if op=="debug":
             return report(self.s,read(JOURNAL,{}),read(LAST,{}))
         if op=="notice":
@@ -417,6 +421,7 @@ def backup_job(host,j):
         vault.check_destination(spec,STATE)
         folder=security_backup(host,j["id"],dest,spec if dest!="local" else None)
         try:
+            activity.record(STATE, j["id"], "publish")
             vault.publish(folder,dest)
         except Exception:
             write(STATE/"backup-attention.json",{"job":j["id"],"message":"Backup local criado. Confira o envio no catálogo e tente novamente se estiver pendente."})

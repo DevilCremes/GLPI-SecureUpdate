@@ -1,4 +1,5 @@
 """Preparação isolada do .tgz e recibo para aprovação posterior."""
+import activity
 import contextlib
 import hashlib
 import os
@@ -67,6 +68,8 @@ def prepare(directory, request):
     (directory / "verified.json").unlink(missing_ok=True)
     plan = request["plan"]
     require(fresh(plan.get("checked")), "Consulte novamente as versões.")
+    job = request["id"]
+    activity.record(directory, job, "metadata")
     asset = current_asset(plan)
     source = request["op"]
     if source == "upload":
@@ -80,6 +83,8 @@ def prepare(directory, request):
     deadline = time.monotonic() + 900
     try:
         source_stream = uploaded() if source == "upload" else downloaded(asset["url"])
+        activity.record(directory, job, "receiving", [0, asset["size"]])
+        next_report = time.monotonic() + 1
         with source_stream as stream, temporary.open("xb") as output:
             while remaining:
                 require(time.monotonic() < deadline, "Tempo de transferência excedido.")
@@ -88,6 +93,11 @@ def prepare(directory, request):
                 digest.update(chunk)
                 output.write(chunk)
                 remaining -= len(chunk)
+                now = time.monotonic()
+                if now >= next_report and remaining:
+                    activity.record(directory, job, "receiving", [asset["size"] - remaining, asset["size"]])
+                    next_report = now + 1
+            activity.record(directory, job, "digest")
             require(not stream.read(1), "O pacote excede o tamanho oficial.")
             require(digest.hexdigest() == asset["sha"], "SHA-256 diferente do oficial.")
             output.flush()
@@ -98,6 +108,7 @@ def prepare(directory, request):
                    "size": asset["size"], "source": source, "actor": request["actor"],
                    "checked": time.time()}
         write(directory / "verified.json", receipt)
+        activity.record(directory, job, "verified")
         return receipt
     finally:
         temporary.unlink(missing_ok=True)

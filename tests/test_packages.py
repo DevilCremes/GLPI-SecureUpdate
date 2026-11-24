@@ -15,6 +15,7 @@ from unittest.mock import Mock, patch
 
 SERVICE = Path(__file__).resolve().parents[1] / "service"
 sys.path.insert(0, str(SERVICE))
+import activity
 import agent
 import common
 import packages
@@ -57,6 +58,41 @@ class Packages(unittest.TestCase):
             self.assertEqual((receipt["sha"],receipt["source"]), (self.digest,mode))
             self.assertEqual((self.root/"verified.tgz").read_bytes(), self.content)
             self.assertFalse(agent.JOURNAL.exists())
+
+    def test_console_tracks_validated_package_and_rejects_stale_work(self):
+        job = "a"*16
+        activity.begin(self.root, job, "download")
+        self.prepare(job=job)
+        self.agent.s.update(job=job, phase="disponível")
+        activity.record(self.root, "b"*16, "receiving", [1, 100])
+        state = self.agent.dispatch({"op":"activity"})
+        self.assertFalse(state["busy"])
+        self.assertIsNone(state["transfer"])
+        self.assertEqual([e[1] for e in state["events"]], [activity.OPERATIONS["download"],
+                         *[activity.STEPS[s] for s in ("metadata","receiving","digest","verified")]])
+
+    def test_console_progress_failure_and_allowlisted_events(self):
+        job = "a"*16
+        activity.begin(self.root, job, "upload")
+        self.agent.s.update(job=job, phase="validando pacote")
+        for count in (1, 8):
+            activity.record(self.root, job, "receiving", [count, 10])
+        activity.record(self.root, job, "private log line")
+        (self.root / ("job-" + job + ".log")).write_text("sensitive raw log")
+        state = self.agent.dispatch({"op":"activity"})
+        self.assertEqual(state["transfer"], [8, 10])
+        self.assertEqual(len(state["events"]), 2)
+        self.assertNotIn("private", str(state))
+        self.assertNotIn("sensitive", str(state))
+        self.assertTrue(state["busy"])
+        with self.assertRaises(ValueError):
+            self.prepare(mode="upload", data=b"x"*len(self.content), job=job)
+        self.agent.s["phase"] = "falha"
+        state = self.agent.dispatch({"op":"activity"})
+        self.assertFalse(state["busy"])
+        self.assertTrue(state["attention"])
+        self.assertNotIn(activity.STEPS["verified"], str(state))
+        self.assertIsNone(state["transfer"])
 
     def test_incorrect_bytes_never_publish_receipt(self):
         for data in (self.content[:-1], self.content+b"x", b"x"*len(self.content)):

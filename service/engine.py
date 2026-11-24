@@ -1,4 +1,5 @@
 """Troca de versão com duas bases. O banco original permanece intacto na migração."""
+import activity
 import contextlib
 import hashlib
 import json
@@ -188,6 +189,7 @@ def sync_tree(src,dst):
 def stage(j, phase):
     write(JOURNAL,{**j,"phase":phase})
     j["phase"]=phase
+    activity.record(JOURNAL.parent, j.get("activity_job") or j.get("job"), phase)
     print(phase,flush=True)
 
 
@@ -457,7 +459,7 @@ def manual(host, expected, job=None):
     info=host.inspect()
     require(info["db"]==last["clone"] and info["version"]==last["target"],"A instalação mudou após a atualização.")
     host.layout(info)
-    j={**last,"active":[u for u in host.units if host.service("active",u)]}
+    j={**last,"activity_job":job or last["job"],"active":[u for u in host.units if host.service("active",u)]}
     with host.client(info) as (sql,_,__):
         j["maintenance"]=sql("SELECT value FROM glpi_configs WHERE context='core' AND name='maintenance_mode'")=="1"
     disk_check(host,info,False)

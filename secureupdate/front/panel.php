@@ -100,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $req['ref'] = (string)($_POST['ref'] ?? '');
         }
         Panel::call($req, $upload);
+        $accepted = true;
         $_SESSION['secureupdate_msg'] = 'Solicitação recebida.';
     } catch (Throwable $e) { $_SESSION['secureupdate_msg'] = $e->getMessage(); }
     finally { if (is_resource($upload)) { fclose($upload); } }
@@ -108,9 +109,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (in_array($op ?? '', ['download','upload'], true)) { $query = '?origem='.$op.'#gu-pacote'; }
     $section = ['bregister'=>'gu-destinos','bsave'=>'gu-politica','btest'=>'gu-operacoes','bprune'=>'gu-limpeza'];
     if (is_string($op ?? null) && isset($section[$op])) { $query .= '#'.$section[$op]; }
+    if (($_SERVER['HTTP_X_SECUREUPDATE_PANEL'] ?? '') === '1') {
+        $reply = ['accepted'=>$accepted ?? false, 'message'=>$_SESSION['secureupdate_msg'], 'location'=>Panel::url().$query];
+        unset($_SESSION['secureupdate_msg']);
+        return Panel::response(json_encode($reply, JSON_THROW_ON_ERROR), 200,
+            ['Content-Type'=>'application/json; charset=utf-8', 'Cache-Control'=>'private, no-store']);
+    }
     return Panel::response('', 303, ['Location'=>Panel::url().$query]);
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') { return Panel::response('', 405); }
+if (isset($_GET['andamento'])) {
+    $headers = ['Content-Type'=>'application/json; charset=utf-8', 'Cache-Control'=>'private, no-store', 'X-Content-Type-Options'=>'nosniff'];
+    try {
+        $activity = Panel::call(['op'=>'activity']);
+        return Panel::response(json_encode($activity, JSON_THROW_ON_ERROR), 200, $headers);
+    } catch (Throwable $e) {
+        return Panel::response('{}', 503, $headers);
+    }
+}
 $tab = $_GET['aba'] ?? 'atualizacao';
 if ($tab === 'avisos') { $tab = 'notificacoes'; }
 $tabs = ['atualizacao'=>'Atualização','saude'=>'Saúde','backups'=>'Backups','notificacoes'=>'Notificações','debug'=>'Debug'];
@@ -155,13 +171,17 @@ $nav = [];
 foreach ($tabs as $id=>$label) { $nav[] = ['id'=>$id,'label'=>$label,'url'=>Panel::url().'?aba='.$id]; }
 $major = (int) GLPI_VERSION;
 $assetBase = $CFG_GLPI['root_doc'].'/plugins/secureupdate'.($major === 10 ? '/public' : '');
-Html::header('Atualizações do GLPI', Panel::url(), 'config', 'plugins');
+$fragment = isset($_GET['conteudo']) && in_array($tab, ['atualizacao','backups'], true);
+if ($fragment) { ob_start(); }
+else { Html::header('Atualizações do GLPI', Panel::url(), 'config', 'plugins'); }
 \Glpi\Application\View\TemplateRenderer::getInstance()->display('@secureupdate/panel.html.twig', [
+    'fragment'=>$fragment, 'job'=>$s['job'] ?? '',
+    'watch'=>$busy || !$s || ($msg === 'Solicitação recebida.' && !empty($s['job'])),
     'page_title'=>$pageTitles[$tab],'comparison_keys'=>$comparisonKeys,
     'has_comparison'=>(bool)array_intersect($comparisonKeys,array_keys($s['health'] ?? [])),
     'job_keys'=>['Estado do trabalho','Identificador','Etapa da transação','Ponto de rollback'],
-    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$assetBase.'/css/panel.css?v=2',
-    'js_url'=>$assetBase.'/js/panel.js?v=2',
+    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$assetBase.'/css/panel.css?v=3',
+    'js_url'=>$assetBase.'/js/panel.js?v=3',
     'selected_source'=>$_GET['origem'] ?? ($prepared['source'] ?? 'download'),
     'major'=>$major, 'migration'=>($plan['scope'] ?? 'same') === 'next',
     'installed'=>GLPI_VERSION,'phase'=>!empty($s['mail_busy']) ? 'enviando e-mail de backup' : (($s['step'] ?? '') ?: ($s['phase'] ?? '')),'error'=>$error ?: ($s['error'] ?? ''),'msg'=>$msg,
@@ -194,4 +214,7 @@ Html::header('Atualizações do GLPI', Panel::url(), 'config', 'plugins');
     'hours'=>$s['hours'] ?? 24,'browser'=>$s['browser'] ?? false,'email'=>$s['email'] ?? false,
     'export_url'=>Panel::url().'?aba=debug&exportar=1'
 ]);
+if ($fragment) {
+    return Panel::response(ob_get_clean(), $error ? 503 : 200, ['Cache-Control'=>'private, no-store', 'Content-Type'=>'text/html; charset=utf-8']);
+}
 Html::footer();
