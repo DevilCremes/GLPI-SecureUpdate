@@ -6,7 +6,7 @@ Plugin para GLPI 10.0.x, 11.0.x e 12.0.x em Linux que reúne atualizações apro
 Para a **primeira instalação** do SecureUpdate, execute o bloco abaixo no servidor do GLPI. Ele baixa o pacote deste repositório para uma pasta privada no seu diretório pessoal e inicia o instalador automático. São necessários `curl`, `tar`, `python3` e acesso a `sudo`.
 
 ```bash
-revisao=39f1f63bac2680129f30c06b2dbdfbb2fbd66a0f
+revisao=4d5aa2950771b7b03e1641287799c2ffeccfb089
 pasta=$(mktemp -d "$HOME/glpi-secureupdate.XXXXXX") &&
 cd "$pasta" &&
 curl --fail --show-error --location \
@@ -16,7 +16,7 @@ tar -xzf secureupdate.tar.gz --strip-components=1 &&
 sudo python3 instalar.py
 ```
 
-Se o instalador encontrar permissões incompatíveis na raiz do GLPI ou em `plugins/`, confira o caminho e o ajuste proposto antes de confirmar. A alteração é limitada ao próprio diretório.
+Se o instalador encontrar permissões incompatíveis na raiz do GLPI ou em `plugins/`, confira o caminho e o ajuste proposto antes de confirmar com `s`, `sim`, `y` ou `yes`. Enter recusa a alteração. A alteração é limitada ao próprio diretório.
 
 Confira a conta PHP e a lista de serviços sugeridas pelo instalador. Ao concluir, entre no GLPI com o perfil **Super-Admin** e abra **Configurar → Plugins → Atualizações do GLPI**.
 
