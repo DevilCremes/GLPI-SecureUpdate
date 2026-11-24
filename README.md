@@ -6,7 +6,7 @@ Plugin para GLPI 10.0.x, 11.0.x e 12.0.x em Linux que reúne atualizações apro
 Para a **primeira instalação** do SecureUpdate, execute o bloco abaixo no servidor do GLPI. Ele baixa o pacote deste repositório para uma pasta privada no seu diretório pessoal e inicia o instalador automático. São necessários `curl`, `tar`, `python3` e acesso a `sudo`.
 
 ```bash
-revisao=4d5aa2950771b7b03e1641287799c2ffeccfb089
+revisao=ba98f16e1a208166bc3fd7d9ea747e7cd439fbbd
 pasta=$(mktemp -d "$HOME/glpi-secureupdate.XXXXXX") &&
 cd "$pasta" &&
 curl --fail --show-error --location \
