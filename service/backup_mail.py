@@ -41,6 +41,8 @@ def deliver(conf, state, notice):
             result = subprocess.run(args, input=json.dumps(notice).encode(), stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL, timeout=90, **host.web)
             output = result.stdout
+            if result.returncode == 2 and b"SU_TERMINAL no_recipients" in output.splitlines():
+                return "terminal", []
             ok = result.returncode == 0 and b"SU_DONE" in output.splitlines()
         except subprocess.TimeoutExpired as exc:
             output = exc.stdout or b""

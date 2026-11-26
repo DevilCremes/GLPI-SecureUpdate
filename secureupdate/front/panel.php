@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_string($token) || !isset($_SESSION['secureupdate_token']) || !hash_equals($_SESSION['secureupdate_token'], $token)) {
         return Panel::response('O formulário expirou. Reabra o painel.', 403);
     }
-    if (($_POST['op'] ?? '') !== 'bfetch') { unset($_SESSION['secureupdate_token']); }
+    unset($_SESSION['secureupdate_token']);
     $upload = null;
     try {
         $op = $_POST['op'] ?? '';
@@ -29,7 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $req = ['op'=>$op, 'actor'=>(int)Session::getLoginUserID()];
         if ($op === 'check') { $req['scope'] = $_POST['scope'] ?? 'same'; }
         if ($op === 'bfetch') {
-            return Panel::backupDownload((string)($_POST['ref'] ?? ''), $req['actor']);
+            $id = (string)($_POST['ref'] ?? '');
+            if (($_POST['typed'] ?? '') !== $id || ($_POST['confirm'] ?? '') !== 'yes') {
+                throw new RuntimeException('Confirme o identificador completo para baixar esta cópia.');
+            }
+            return Panel::backupDownload($id, $req['actor'], (string)$_POST['typed']);
         }
         if ($op === 'bregister') {
             $fields = [
@@ -180,8 +184,8 @@ else { Html::header('Atualizações do GLPI', Panel::url(), 'config', 'plugins')
     'page_title'=>$pageTitles[$tab],'comparison_keys'=>$comparisonKeys,
     'has_comparison'=>(bool)array_intersect($comparisonKeys,array_keys($s['health'] ?? [])),
     'job_keys'=>['Estado do trabalho','Identificador','Etapa da transação','Ponto de rollback'],
-    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$assetBase.'/css/panel.css?v=3',
-    'js_url'=>$assetBase.'/js/panel.js?v=3',
+    'tab'=>$tab,'nav'=>$nav,'panel_url'=>Panel::url(),'css_url'=>$assetBase.'/css/panel.css?v=4',
+    'js_url'=>$assetBase.'/js/panel.js?v=4',
     'selected_source'=>$_GET['origem'] ?? ($prepared['source'] ?? 'download'),
     'major'=>$major, 'migration'=>($plan['scope'] ?? 'same') === 'next',
     'installed'=>GLPI_VERSION,'phase'=>!empty($s['mail_busy']) ? 'enviando e-mail de backup' : (($s['step'] ?? '') ?: ($s['phase'] ?? '')),'error'=>$error ?: ($s['error'] ?? ''),'msg'=>$msg,

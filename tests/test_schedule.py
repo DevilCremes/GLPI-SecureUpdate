@@ -88,6 +88,17 @@ class Preferences(unittest.TestCase):
         self.assertEqual(self.control.s["next"],due)
         self.assertFalse(self.control.s["email"])
 
+    def test_failed_scheduled_start_records_warning_and_advances_window(self):
+        with patch.object(agent.time, "time", return_value=self.now):
+            common.write(agent.STATE / agent.vault.POLICY, {
+                **agent.vault.DEFAULT, "rule":self.rule, "next":self.now, "actor":10
+            })
+            with patch.object(self.control, "start", side_effect=ValueError("executor ocupado")):
+                self.assertFalse(self.control.scheduled_backup(self.now + 1))
+        policy = common.read(agent.STATE / agent.vault.POLICY)
+        self.assertGreater(policy["next"], self.now)
+        self.assertIn("não foi iniciado", self.control.s["backup_result"]["message"])
+
     def test_overdue_deadline_and_manual_checks(self):
         with patch.object(agent.time,"time",return_value=self.now),patch.object(agent.subprocess,"Popen"):
             self.control.dispatch({**self.settings,"schedule":self.rule})

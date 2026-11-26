@@ -159,7 +159,9 @@ def verify(d, sums):
 
 def recorded_spec(row):
     spec=destinations().get(row["destination"])
-    require(spec and spec==row["storage"],"Restaure a configuração original do destino.")
+    saved=row.get("storage", {})
+    require(spec and all(spec.get(key)==saved.get(key) for key in ("type","target","profile")),
+            "Restaure a configuração original do destino.")
     return spec
 
 
@@ -174,9 +176,13 @@ def publish(d, alias):
     row.update(destination=alias,storage=spec,pending=True)
     write(d/"resumo.json",row)
     verify(d,(d/"SHA256SUMS").read_text())
-    for name in FILES:
-        transport(spec,"copyto",d/name,remote(spec,d.name,name))
-    transport(spec,"check","--download","--one-way",d,remote(spec,d.name,""))
+    with tempfile.TemporaryDirectory(prefix=".manifesto-",dir=d.parent) as temp:
+        manifest = Path(temp) / "resumo.json"
+        write(manifest, {**row,"pending":False})
+        for name in FILES:
+            source = manifest if name=="resumo.json" else d/name
+            transport(spec,"copyto",source,remote(spec,d.name,name))
+    transport(spec,"check","--download","--one-way","--exclude","/resumo.json",d,remote(spec,d.name,""))
     write(d/"resumo.json",{**row,"pending":False})
     for name in FILES[:2]:
         (d/name).unlink(missing_ok=True)
@@ -263,6 +269,11 @@ def prune(state,policy):
 
 
 def stream_export(d, sock):
+    row=read(d/"resumo.json")
+    if row.get("destination","local")!="local" and not row.get("pending"):
+        need=2*row["size"]+128*1024**2
+        require(shutil.disk_usage(d.parent).free>=need,
+                "Espaço insuficiente para preparar o download e o backup remoto.")
     with materialize(d) as files:
         # Precompute exact Content-Length so clients detect an interrupted transfer.
         need=sum((files/name).stat().st_size for name in FILES)+64*1024**2

@@ -43,6 +43,9 @@ class Rules(unittest.TestCase):
         self.assertEqual(health.compare({"checks":{"smtp":"critical"}},{"checks":{"smtp":"critical"}}),([],[]))
     def test_new_critical(self):
         self.assertEqual(health.compare({"checks":{"tickets":"ok"}},{"checks":{"tickets":"error"}}),(["tickets"],[]))
+
+    def test_warning_regression_is_reported(self):
+        self.assertEqual(health.compare({"checks":{"email":"ok"}},{"checks":{"email":"warning"}}),(["email"],[]))
     def test_health_improvement_and_deterioration(self):
         self.assertEqual(health.compare({"checks":{"a":"critical","b":"error"}},{"checks":{"a":"error","b":"critical"}}),(["b"],[]))
     def test_lost_coverage(self):
@@ -59,6 +62,14 @@ class Rules(unittest.TestCase):
             with tarfile.open(d/"a.tgz","w:gz") as f:
                 m=tarfile.TarInfo("glpi/link");m.type=tarfile.SYMTYPE;m.linkname="../escape";f.addfile(m)
             with self.assertRaises(ValueError): engine.extract(d/"a.tgz",d)
+    def test_restore_repoints_archived_config_database_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archived = Path(directory) / "config_db.php"
+            archived.write_text('<?php\n public $dbdefault = "gsu_old";\n')
+            engine.switch_db_archived(archived, "gsu_" + "b"*16)
+            self.assertIn('gsu_' + "b"*16, archived.read_text())
+            self.assertNotIn("gsu_old", archived.read_text())
+
     def test_sql_config(self):
         with tempfile.TemporaryDirectory() as t:
             p=Path(t)/"config.php";p.write_text('<?php\n public $dbdefault = "glpi";\n')
@@ -212,7 +223,7 @@ class Transaction(unittest.TestCase):
         (self.ext[0]/"ticket").write_text("original")
         self.units=["web.service","cron.timer"];self.active=set(self.units)
         self.c={"status_url":"https://example.invalid/status.php"}
-        self.sqlversions={"glpi":"12.0.1"};self.modes={"glpi":"0"};self.fail="";self.opened=0
+        self.sqlversions={"glpi":"12.0.1"};self.modes={"glpi":"0"};self.fail="";self.opened=0;self.hc_targets=[]
         self.tree(self.app,"12.0.1")
         (self.app/"config/config_db.php").write_text("<?php\n public $dbdefault = 'glpi';\n")
         b=self.tmp/"build"/"glpi";self.tree(b,"12.0.2")
@@ -259,6 +270,7 @@ class Transaction(unittest.TestCase):
         if op=="start": self.active.add(unit)
         if op=="stop": self.active.discard(unit)
     def hc(self,host,target=None):
+        self.hc_targets.append(target)
         version=self.inspect()["version"]
         return {"plugins":["secureupdate","healthcheck"],"checks":{"smtp":"warning","db":"critical" if self.fail=="health" and version=="12.0.2" else "ok"},"score":90,"id":1,"services":{"db":"OK"}}
     def http(self,url):
@@ -328,6 +340,10 @@ class Transaction(unittest.TestCase):
             self.execute()
         self.original()
         self.assertEqual(self.inspect()["version"], "10.0.28")
+
+    def test_maintenance_inspects_plugins_against_the_target_version(self):
+        self.execute()
+        self.assertIn(self.plan["version"], self.hc_targets)
 
     def test_success(self):
         self.execute()

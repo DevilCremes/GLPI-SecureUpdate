@@ -79,7 +79,6 @@ class MailCommand extends AbstractCommand {
                 }
                 if (!$mailer->send()) { throw new \RuntimeException('Falha ao enviar aviso.'); }
             } catch (\Throwable $e) {
-                if (!$backup) { throw $e; }
                 $failed = true;
                 continue;
             }
@@ -91,7 +90,10 @@ class MailCommand extends AbstractCommand {
             $sent++;
         }
         if ($failed) { return 1; }
-        if (!$sent) { throw new \RuntimeException('Nenhum Super-Admin ativo com e-mail configurado.'); }
+        if (!$sent) {
+            if ($backup) { $out->writeln('SU_TERMINAL no_recipients'); return 2; }
+            throw new \RuntimeException('Nenhum Super-Admin ativo com e-mail configurado.');
+        }
         if ($backup) { $out->writeln('SU_DONE'); }
         return 0;
     }

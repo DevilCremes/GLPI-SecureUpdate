@@ -2,13 +2,12 @@
 <link rel="stylesheet" href="{{ css_url }}">
 {% if js_url %}<script src="{{ js_url }}" defer></script>{% endif %}
 <main class="gu">
-<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
-<nav class="gu-nav" aria-label="Seções do SecureUpdate">{% for link in nav %}<a href="{{ link.url }}" {% if link.id == tab %}aria-current="page"{% endif %}>{{ link.label }}</a>{% endfor %}</nav>
-<span class="gu-admin">Super-Admin</span></aside>
+<header class="gu-head"><div class="gu-brand"><b>GLPI</b><span aria-hidden="true">|</span><strong>SecureUpdate</strong></div><span class="gu-admin">Super-Admin</span></header>
 <div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
 <h1>{{ page_title }}</h1>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate">{% for link in nav %}<a href="{{ link.url }}" {% if link.id == tab %}aria-current="page"{% endif %}>{{ link.label }}</a>{% endfor %}</nav>
 {% if tab in ['atualizacao','backups'] %}
-<section class="gu-monitor" {% if not watch %}hidden{% endif %} data-url="{{ panel_url }}?andamento=1" aria-label="Andamento da operação">
+<section class="gu-monitor" {% if not watch %}hidden{% endif %} data-url="{{ panel_url }}?andamento=1" aria-label="Andamento da operação" aria-live="polite">
     <div class="gu-monitor-head"><strong role="status">{{ phase|default('Conectando ao executor') }}</strong><span class="gu-meter-text"></span></div>
     <progress aria-label="Progresso da operação"></progress>
     <p class="gu-request-feedback" role="alert" hidden></p>
@@ -22,11 +21,22 @@
 {% if msg %}<p class="gu-msg" role="status">{{ msg }}</p>{% endif %}
 {% if error %}<p class="gu-error alert alert-danger" role="alert">{{ error }}</p>{% endif %}
 {% if tab == 'atualizacao' %}
-<dl class="gu-strip" aria-label="Comparação de versões">
-    <div><dt>Versão instalada</dt><dd>{{ installed }}</dd></div>
-    <div><dt>Versão disponível</dt><dd>{% if available %}{{ target }}{% else %}—{% endif %}</dd></div>
-    <div><dt>Urgência</dt><dd>{% if available %}<span class="gu-badge" data-level="{{ urgency|lower }}">{{ urgency }}</span>{% else %}—{% endif %}</dd></div>
-</dl>
+<section class="gu-hero" aria-live="polite">
+<div><p class="gu-eyebrow">{% if available %}Versão disponível{% elseif phase in ['falha','revertida','requer revisão','interrompida'] %}Resultado da operação{% else %}Última consulta{% if checked %} · {{ checked }}{% endif %}{% endif %}</p>
+<h2>{% if available %}GLPI {{ target }}{% elseif phase == 'revertida' %}Atualização revertida{% elseif phase in ['falha','interrompida','requer revisão'] %}{{ phase|capitalize }}{% elseif checked %}GLPI {{ installed }} está atualizado{% else %}GLPI {{ installed }}{% endif %}</h2>
+{% if available %}<p>Instalado {{ installed }} · ramo {{ major }}.0 · <span class="gu-badge" data-level="{{ urgency|lower }}">Urgência {{ urgency|lower }}</span></p>
+{% elseif phase == 'revertida' %}<p>Os arquivos originais foram restaurados. Consulte o diagnóstico e o identificador do trabalho na aba Debug.</p>
+{% elseif phase in ['falha','interrompida','requer revisão'] %}<p>{{ error|default('Consulte o estado do trabalho na aba Debug.') }}</p>
+{% else %}<p>Nenhuma versão estável mais recente foi encontrada no ramo {{ major }}.0.</p>{% endif %}
+</div>
+{% if available %}<ol class="gu-steps" aria-label="Etapas da atualização">
+<li class="{% if prepared.id|default('') %}gu-step-done{% else %}gu-step-current{% endif %}"><span>1</span>Verificar pacote</li>
+<li class="{% if prepared.id|default('') %}gu-step-current{% endif %}"><span>2</span>Aprovar</li>
+<li><span>3</span>Backup e manutenção</li>
+</ol>
+{% if can_prepare %}<a class="btn btn-primary" href="#gu-pacote">Preparar pacote</a>{% endif %}
+{% endif %}
+</section>
 <div class="gu-ledger">
 <h2 class="gu-ledger-title">Pacote e aprovação</h2>
 <div class="gu-split"><nav class="gu-index" aria-label="Pacote e aprovação" hidden></nav>
@@ -111,7 +121,12 @@
 {% for b in backups %}<details class="gu-note"><summary>{{ b.date }} · {{ b.version }} · {{ b.size }} · {{ b.destination }}</summary>
 <p><code>{{ b.id }}</code> · {% if b.deleting %}Exclusão incompleta. Confirme a exclusão para tentar novamente.{% elseif b.pending %}Envio pendente. Cópia local preservada.{% else %}Cópia verificada{% endif %}</p>
 {% if not busy %}<div class="gu-actions">
-{% for action in backup_actions %}{% if not b.deleting and (action.id != 'bretry' or b.pending) %}<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="{{ action.id }}"><input type="hidden" name="ref" value="{{ b.id }}"><button class="btn">{{ action.label }}</button></form>{% endif %}{% endfor %}
+{% for action in backup_actions %}{% if not b.deleting and (action.id != 'bretry' or b.pending) %}
+{% if action.id == 'bfetch' %}<details><summary>{{ action.label }}</summary><p>Este arquivo inclui o banco e todos os arquivos da instalação. Digite o identificador para confirmar o download.</p>
+<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="bfetch"><input type="hidden" name="ref" value="{{ b.id }}">
+<label>Identificador completo <input class="form-control" name="typed" required autocomplete="off"></label><button class="btn">Confirmar download</button></form></details>
+{% else %}<form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="op" value="{{ action.id }}"><input type="hidden" name="ref" value="{{ b.id }}"><button class="btn">{{ action.label }}</button></form>{% endif %}
+{% endif %}{% endfor %}
 </div>
 <details><summary>Restaurar ou excluir</summary><p>Restaurar substitui os dados em uso pelos desta cópia e abre uma janela de manutenção. Excluir remove esta cópia do destino e do catálogo.</p>
 <form method="post"><input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="approval_token" value="{{ token }}"><input type="hidden" name="ref" value="{{ b.id }}">
@@ -236,7 +251,7 @@
             </select>
         </label>
         <small>Inclui backups manuais e agendados, operações do catálogo e cópias de segurança anteriores à atualização ou ao rollback. O e-mail é enviado após o resultado, independentemente do intervalo de consulta de versões.</small>
-        {% if backup_mail_pending %}<p role="status">{{ backup_mail_pending }} aviso(s) pendente(s).{% if backup_mail_failed %} Houve falha no envio. O executor tentará novamente.{% endif %}</p>{% endif %}
+        {% if backup_mail_pending or backup_mail_failed %}<p role="status">{% if backup_mail_pending %}{{ backup_mail_pending }} aviso(s) pendente(s).{% endif %}{% if backup_mail_failed %} O envio de um aviso falhou. Confira o resultado e os destinatários.{% endif %}</p>{% endif %}
     </fieldset>
 </section>
 <section class="gu-pane" id="gu-calendario" data-label="Calendário de consulta">

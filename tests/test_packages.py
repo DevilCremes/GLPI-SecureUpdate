@@ -52,6 +52,20 @@ class Packages(unittest.TestCase):
             reader.assert_called_once_with()
         return receipt
 
+    def test_old_job_logs_are_bounded_and_symlinks_are_ignored(self):
+        for number in range(205):
+            path=self.root/f"job-{number:016x}.log"
+            path.write_text("done")
+            os.utime(path,(number+1,number+1))
+        outside=self.root/"private.log"
+        outside.write_text("keep")
+        (self.root/("job-"+"f"*16+".log")).symlink_to(outside)
+        agent.prune_job_logs(self.root)
+        remaining=[p for p in self.root.glob("job-????????????????.log") if not p.is_symlink()]
+        self.assertEqual(len(remaining),199)
+        self.assertTrue(outside.exists())
+        self.assertFalse((self.root/("job-"+"0"*16+".log")).exists())
+
     def test_both_sources_produce_the_same_digest_before_maintenance(self):
         for mode in ("download","upload"):
             receipt = self.prepare(mode)
@@ -63,10 +77,11 @@ class Packages(unittest.TestCase):
         job = "a"*16
         activity.begin(self.root, job, "download")
         self.prepare(job=job)
-        self.agent.s.update(job=job, phase="disponível")
+        self.agent.s.update(job=job, phase="disponível", prepared={"id":job})
         activity.record(self.root, "b"*16, "receiving", [1, 100])
         state = self.agent.dispatch({"op":"activity"})
         self.assertFalse(state["busy"])
+        self.assertTrue(state["hold"])
         self.assertIsNone(state["transfer"])
         self.assertEqual([e[1] for e in state["events"]], [activity.OPERATIONS["download"],
                          *[activity.STEPS[s] for s in ("metadata","receiving","digest","verified")]])

@@ -80,13 +80,15 @@ def installation_permissions(app, preview):
 def choose(value, flag, message, candidates=()):
     if value:
         return value
+    hint = " Opções: " + ", ".join(map(str, candidates)) if candidates else ""
+    if not sys.stdin.isatty():
+        raise SystemExit(message + hint + " Informe " + flag + ".")
+    detected = f" Detecção: {candidates[0]}. Pressione Enter para confirmar." if len(candidates) == 1 else ""
+    result = input(message + hint + detected + " > ").strip()
+    if result:
+        return result
     if len(candidates) == 1:
         return str(candidates[0])
-    hint = " Opções: " + ", ".join(map(str, candidates)) if candidates else ""
-    if sys.stdin.isatty():
-        result = input(message + hint + " > ").strip()
-        if result:
-            return result
     raise SystemExit(message + hint + " Informe " + flag + ".")
 
 
@@ -180,6 +182,12 @@ def read_settings(a):
     pools = detect.pool_candidates(app)
     apache = detect.apache_account(app)
     names = sorted({u for u, _ in pools} | ({apache} if apache else set()))
+    if not a.usuario_php:
+        associations = [f"{user} (pool FPM ligado ao vhost do GLPI, PHP {version})" for user, version in pools]
+        if apache:
+            associations.append(f"{apache} (Apache com raiz correspondente ao GLPI)")
+        if associations:
+            print("Contas associadas a este GLPI:\n - " + "\n - ".join(associations), flush=True)
     user = choose(a.usuario_php, "--usuario-php", "Qual a conta Unix que executa o PHP deste GLPI?", names)
     versions = sorted({v for u, v in pools if u == user and v})
     php_names = [f"/usr/bin/php{v}" for v in versions] or [shutil.which("php") or "/usr/bin/php"]

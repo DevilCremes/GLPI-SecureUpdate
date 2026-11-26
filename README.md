@@ -6,7 +6,7 @@ Plugin para GLPI 10.0.x, 11.0.x e 12.0.x em Linux que reúne atualizações apro
 Para a **primeira instalação** do SecureUpdate, execute o bloco abaixo no servidor do GLPI. Ele baixa o pacote deste repositório para uma pasta privada no seu diretório pessoal e inicia o instalador automático. São necessários `curl`, `tar`, `python3` e acesso a `sudo`.
 
 ```bash
-revisao=ba98f16e1a208166bc3fd7d9ea747e7cd439fbbd
+revisao=4d5aa2950771b7b03e1641287799c2ffeccfb089
 pasta=$(mktemp -d "$HOME/glpi-secureupdate.XXXXXX") &&
 cd "$pasta" &&
 curl --fail --show-error --location \
@@ -39,7 +39,7 @@ O **SecureUpdate** compara esses resultados antes e depois da migração. També
 
 ## Interface
 
-Nas abas **Atualização** e **Backups**, uma barra acompanha o trabalho em curso e um console recolhível registra as etapas. O resultado aparece automaticamente quando o executor termina. Escolha uma aba no menu lateral e uma seção no índice para consultar seus detalhes. A aba Backups abre no catálogo. Em telas pequenas, os menus se reorganizam acima do conteúdo.
+A versão 1.0.8 adota o Console operacional nas cinco abas. Escolha uma aba no menu lateral e uma seção no índice para consultar seus detalhes. A aba Backups abre no catálogo. Em telas pequenas, os menus se reorganizam acima do conteúdo.
 
 ## Como funciona uma atualização
 

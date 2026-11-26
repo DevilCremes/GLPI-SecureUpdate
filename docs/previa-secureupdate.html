@@ -134,12 +134,31 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
  .gu-index {display:flex;flex-wrap:wrap;border-inline-end:0;border-bottom:1px solid var(--line)}
  .gu-index a {border:0}
 }
+.gu{display:block;min-height:0;padding:0;border:1px solid var(--tblr-border-color,GrayText);border-radius:.75rem;overflow:hidden;color:var(--tblr-body-color,CanvasText);background:var(--tblr-body-bg,Canvas)}
+.gu-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem clamp(1rem,2.5vw,2.5rem);border-bottom:1px solid var(--tblr-border-color,GrayText);background:var(--tblr-bg-surface,Canvas)}
+.gu-brand{display:flex;align-items:center;gap:.8rem;padding:0;font-size:1.05rem}.gu-brand b{color:var(--tblr-primary,Highlight);font-style:italic;font-size:1.55rem}.gu-brand span{color:var(--tblr-border-color,GrayText)}
+.gu-admin{margin:0;padding:.4rem .7rem;border:1px solid var(--tblr-border-color,GrayText);border-radius:999px;font-size:.875rem}
+.gu-main{max-width:1440px;margin:auto;padding:clamp(1rem,3vw,2.5rem);background:var(--tblr-body-bg,Canvas)}
+.gu-nav{display:flex;gap:.3rem;overflow:auto;border-bottom:1px solid var(--tblr-border-color,GrayText);padding-bottom:.4rem;margin-bottom:1.25rem}
+.gu-nav a{flex:none;padding:.55rem .9rem;border:1px solid transparent;border-radius:999px;color:var(--tblr-body-color,CanvasText);text-decoration:none}
+.gu-nav a[aria-current=page]{background:var(--tblr-primary,Highlight);color:var(--tblr-primary-fg,HighlightText);font-weight:650}
+.gu-monitor{margin:0 0 1rem;padding:.9rem 1rem;border:1px solid var(--tblr-border-color,GrayText);border-radius:.5rem;background:var(--tblr-bg-surface,Canvas)}
+.gu-monitor-head{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+.gu-monitor progress{display:block;width:100%;height:.65rem;margin:.65rem 0;accent-color:var(--tblr-primary,Highlight)}
+.gu-monitor summary{cursor:pointer}.gu-monitor ol{max-height:12rem;overflow:auto;background:var(--tblr-bg-surface-secondary,Canvas);padding:.7rem 2.4rem;font-family:var(--tblr-font-monospace,monospace)}
+@media(max-width:600px){.gu-head{padding:.7rem 1rem}.gu-nav{gap:0}.gu-nav a{padding:.5rem .7rem}}
 </style></head><body><header class="demobar"><strong>SecureUpdate · Demonstração do Console operacional</strong><label>Tema <select id="theme"><option value="light dark">Sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select></label><span id="demo-status" role="status">Dados de exemplo</span></header><article data-demo="atualizacao"><main class="gu">
-<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
-<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" aria-current="page">Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" >Debug</a></nav>
-<span class="gu-admin">Super-Admin</span></aside>
-<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<header class="gu-head"><div class="gu-brand"><b>GLPI</b><span aria-hidden="true">|</span><strong>SecureUpdate</strong></div><span class="gu-admin">Super-Admin</span></header>
+<div class="gu-main">
+<p class="gu-path">Configurar / SecureUpdate</p>
+<p class="gu-path">Configurar / SecureUpdate</p>
 <h1>Atualizações do GLPI</h1>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" aria-current="page">Atualização</a><a href="#demo-saude">Saúde</a><a href="#demo-backups">Backups</a><a href="#demo-notificacoes">Notificações</a><a href="#demo-debug">Debug</a></nav>
+<section class="gu-monitor" aria-label="Demonstração do andamento">
+<div class="gu-monitor-head"><strong role="status">Conferindo pacote oficial</strong><span class="gu-meter-text">65%</span></div>
+<progress max="100" value="65" aria-label="Progresso da verificação"></progress>
+<details open><summary>Console da operação</summary><ol role="log" aria-label="Etapas simuladas"><li>09:40:12 · Release oficial consultada</li><li>09:40:20 · Tamanho confirmado</li><li>09:40:24 · SHA-256 em verificação</li></ol></details>
+</section>
 
 
 
@@ -223,11 +242,12 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
 </div></div></div>
 
 </div></main></article><article data-demo="saude" hidden><main class="gu">
-<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
-<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" aria-current="page">Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" >Debug</a></nav>
-<span class="gu-admin">Super-Admin</span></aside>
-<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<header class="gu-head"><div class="gu-brand"><b>GLPI</b><span aria-hidden="true">|</span><strong>SecureUpdate</strong></div><span class="gu-admin">Super-Admin</span></header>
+<div class="gu-main">
+<p class="gu-path">Configurar / SecureUpdate</p>
+<p class="gu-path">Configurar / SecureUpdate</p>
 <h1>Saúde da instalação</h1>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao">Atualização</a><a href="#demo-saude" aria-current="page">Saúde</a><a href="#demo-backups">Backups</a><a href="#demo-notificacoes">Notificações</a><a href="#demo-debug">Debug</a></nav>
 
 
 
@@ -251,11 +271,12 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
 </div></div></div>
 
 </div></main></article><article data-demo="backups" hidden><main class="gu">
-<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
-<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" aria-current="page">Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" >Debug</a></nav>
-<span class="gu-admin">Super-Admin</span></aside>
-<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<header class="gu-head"><div class="gu-brand"><b>GLPI</b><span aria-hidden="true">|</span><strong>SecureUpdate</strong></div><span class="gu-admin">Super-Admin</span></header>
+<div class="gu-main">
+<p class="gu-path">Configurar / SecureUpdate</p>
+<p class="gu-path">Configurar / SecureUpdate</p>
 <h1>Backups do GLPI</h1>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao">Atualização</a><a href="#demo-saude">Saúde</a><a href="#demo-backups" aria-current="page">Backups</a><a href="#demo-notificacoes">Notificações</a><a href="#demo-debug">Debug</a></nav>
 
 
 
@@ -379,11 +400,12 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
 </section>
 
 </div></main></article><article data-demo="notificacoes" hidden><main class="gu">
-<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
-<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" aria-current="page">Notificações</a><a href="#demo-debug" >Debug</a></nav>
-<span class="gu-admin">Super-Admin</span></aside>
-<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<header class="gu-head"><div class="gu-brand"><b>GLPI</b><span aria-hidden="true">|</span><strong>SecureUpdate</strong></div><span class="gu-admin">Super-Admin</span></header>
+<div class="gu-main">
+<p class="gu-path">Configurar / SecureUpdate</p>
+<p class="gu-path">Configurar / SecureUpdate</p>
 <h1>Notificações</h1>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao">Atualização</a><a href="#demo-saude">Saúde</a><a href="#demo-backups">Backups</a><a href="#demo-notificacoes" aria-current="page">Notificações</a><a href="#demo-debug">Debug</a></nav>
 
 
 
@@ -455,11 +477,12 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
 </form>
 
 </div></main></article><article data-demo="debug" hidden><main class="gu">
-<aside class="gu-rail"><div class="gu-brand"><b>GLPI</b><strong>SecureUpdate</strong></div>
-<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao" >Atualização</a><a href="#demo-saude" >Saúde</a><a href="#demo-backups" >Backups</a><a href="#demo-notificacoes" >Notificações</a><a href="#demo-debug" aria-current="page">Debug</a></nav>
-<span class="gu-admin">Super-Admin</span></aside>
-<div class="gu-main"><p class="gu-path">Configurar / SecureUpdate</p>
+<header class="gu-head"><div class="gu-brand"><b>GLPI</b><span aria-hidden="true">|</span><strong>SecureUpdate</strong></div><span class="gu-admin">Super-Admin</span></header>
+<div class="gu-main">
+<p class="gu-path">Configurar / SecureUpdate</p>
+<p class="gu-path">Configurar / SecureUpdate</p>
 <h1>Debug do executor</h1>
+<nav class="gu-nav" aria-label="Seções do SecureUpdate"><a href="#demo-atualizacao">Atualização</a><a href="#demo-saude">Saúde</a><a href="#demo-backups">Backups</a><a href="#demo-notificacoes">Notificações</a><a href="#demo-debug" aria-current="page">Debug</a></nav>
 
 
 
@@ -473,7 +496,7 @@ body{background:var(--tblr-body-bg);color:var(--tblr-body-color);font:16px/1.45 
 </section>
 <section class="gu-pane" id="gu-executor" data-label="Executor">
 <h2>Executor</h2>
-<dl class="gu-summary"><div><dt>Serviço local</dt><dd>Conectado</dd></div><div><dt>Versão do executor</dt><dd>1.0.8</dd></div></dl>
+<dl class="gu-summary"><div><dt>Serviço local</dt><dd>Conectado</dd></div><div><dt>Versão do executor</dt><dd>1.4.0</dd></div></dl>
 </section>
 <section class="gu-pane" id="gu-relatorio" data-label="Relatório de suporte">
 <h2>Relatório de suporte</h2>
@@ -496,7 +519,7 @@ document.addEventListener('submit',e=>{
  const out=document.getElementById('demo-status');
  out.textContent=(op==='brestore'||op==='bdelete')&&data.get('typed')!==data.get('ref')?'Identificador de backup divergente.':'Simulação concluída. Nenhuma operação foi enviada ao GLPI.';
 });
-document.addEventListener('click',e=>{const a=e.target.closest('a[download]');if(!a)return;e.preventDefault();const u=URL.createObjectURL(new Blob([JSON.stringify({demonstracao:true,executor:'1.0.8'},null,2)],{type:'application/json'}));const l=document.createElement('a');l.href=u;l.download='debug-exemplo.json';l.click();setTimeout(()=>URL.revokeObjectURL(u),1000)});
+document.addEventListener('click',e=>{const a=e.target.closest('a[download]');if(!a)return;e.preventDefault();const u=URL.createObjectURL(new Blob([JSON.stringify({demonstracao:true,executor:'1.4.0'},null,2)],{type:'application/json'}));const l=document.createElement('a');l.href=u;l.download='debug-exemplo.json';l.click();setTimeout(()=>URL.revokeObjectURL(u),1000)});
 </script><script>(() => {
     function syncApproval(form) {
         form.querySelector('button.btn-primary').disabled = !form.elements.confirm.checked;

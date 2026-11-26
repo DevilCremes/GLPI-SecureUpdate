@@ -3,33 +3,10 @@
         form.querySelector('button.btn-primary').disabled = !form.elements.confirm.checked;
     }
 
-    function syncSections(ledger) {
-        const panes = Array.from(ledger.querySelectorAll('.gu-pane'));
-        const index = ledger.querySelector('.gu-index');
-        if (!panes.length || !index) return;
-        if (!index.children.length) {
-            for (const pane of panes) {
-                const link = document.createElement('a');
-                link.href = '#' + pane.id;
-                link.textContent = pane.dataset.label;
-                link.setAttribute('aria-controls', pane.id);
-                index.append(link);
-            }
-        }
-        const selected = panes.find(pane => '#' + pane.id === location.hash) || panes[0];
-        panes.forEach(pane => { pane.hidden = pane !== selected; });
-        for (const link of index.children) {
-            if (link.hash === '#' + selected.id) link.setAttribute('aria-current', 'location');
-            else link.removeAttribute('aria-current');
-        }
-        index.hidden = panes.length < 2;
-        ledger.classList.toggle('gu-indexed', !index.hidden);
-    }
-
     function syncPage() {
         document.querySelectorAll('.gu-approval').forEach(syncApproval);
-        document.querySelectorAll('.gu-ledger').forEach(syncSections);
     }
+
     function followOperation(monitor) {
         const details = monitor.querySelector('details');
         const list = monitor.querySelector('ol');
@@ -41,6 +18,7 @@
         try { details.open = sessionStorage.getItem(preference) !== 'no'; } catch {}
         details.addEventListener('toggle', () => {
             try { sessionStorage.setItem(preference, details.open ? 'yes' : 'no'); } catch {}
+            if (details.open) list.scrollTop = list.scrollHeight;
         });
 
         let rows = [];
@@ -64,9 +42,6 @@
                 meter.textContent = '';
             }
             const events = activity.events.slice();
-            if (!events.length || events[events.length - 1][1] !== activity.title) {
-                events.push([null, activity.title]);
-            }
             if (lastJob !== activity.job || rows.length > events.length ||
                 rows.some((entry, i) => entry[0] !== events[i][0] || entry[1] !== events[i][1])) {
                 list.replaceChildren();
@@ -119,6 +94,7 @@
                         connection.hidden = true;
                         tracking = false;
                         if (!activity.job && feedback.hidden) monitor.hidden = true;
+                        monitor.hidden = !activity.attention && !activity.hold && feedback.hidden;
                         if (unconfirmedJob === activity.job) heading.textContent = 'Solicitação sem confirmação';
                         return;
                     }
@@ -141,7 +117,13 @@
             if (button && button.name) data.set(button.name, button.value);
             if (!data.get('op') || data.get('op') === 'bfetch') return;
             event.preventDefault();
-            if (tracking) return;
+            if (tracking) {
+                const notice = document.querySelector('.gu-monitor .gu-request-feedback');
+                notice.textContent = 'Já há uma operação em andamento. Aguarde o resultado antes de enviar outro pedido.';
+                notice.hidden = false;
+                notice.scrollIntoView({block:'nearest'});
+                return;
+            }
             tracking = true;
             delay = 2000;
             current.inert = true;

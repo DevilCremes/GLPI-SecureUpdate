@@ -54,7 +54,9 @@ def pool_candidates(app, etc=Path("/etc")):
             for name, values in sections.items():
                 user = values.get("user", "")
                 sock = Path(values.get("listen", "").replace("$pool", name))
-                if name != app.name and not (sock.is_absolute() and sock.resolve() in sockets):
+                # Match the FastCGI socket from a vhost serving this GLPI. Pool
+                # naming alone is not evidence that it serves this installation.
+                if not (sock.is_absolute() and sock.resolve() in sockets):
                     continue
                 if re.fullmatch(r"[a-zA-Z_][\w.-]*", user) and user != "root":
                     version = next((p for p in path.parts if re.fullmatch(r"\d+\.\d+", p)), "")

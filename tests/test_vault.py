@@ -3,12 +3,13 @@ import hashlib
 import io
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import shutil
 import sys
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "service"))
 import agent
@@ -101,6 +102,8 @@ class VaultTests(unittest.TestCase):
         vault.check_destination(self.spec,self.root)
         vault.publish(d,"nas")
         self.assertFalse((d/"database.sql").exists())
+        remote_summary = json.loads((self.target/"backups"/d.name/"resumo.json").read_text())
+        self.assertFalse(remote_summary["pending"])
         out = io.BytesIO()
         class Sink:
             sendall = out.write
@@ -160,6 +163,53 @@ class VaultTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"original"):
             vault.remove(self.root,d.name)
         self.assertTrue(d.is_dir())
+
+    def test_backup_download_requires_confirmation_is_audited_and_rate_limited(self):
+        patch.multiple(agent, STATE=self.root, STORE=self.root/"panel.json",
+                       JOURNAL=self.root/"transaction.json", LAST=self.root/"last.json").start()
+        controller = agent.Agent({"web_user": __import__("pwd").getpwuid(__import__("os").getuid()).pw_name})
+        ref = "20261120T120000Z-" + "a"*16
+        request = {"op":"bfetch","actor":9,"ref":ref}
+        with self.assertRaisesRegex(ValueError, "Confirme"):
+            controller.dispatch({**request,"confirm":False,"typed":ref}, object())
+        with self.assertRaisesRegex(ValueError, "Confirme"):
+            controller.dispatch({**request,"confirm":True,"typed":"different"}, object())
+        with patch.object(agent.time,"time",return_value=1000):
+            controller.audit_backup_download(ref,9)
+            audit = common.read(self.root/"backup-download-audit.json")
+            self.assertEqual(audit,[{"actor":9,"time":1000,"backup":ref}])
+            with self.assertRaisesRegex(ValueError,"um minuto"):
+                controller.audit_backup_download(ref,9)
+            controller.audit_backup_download(ref,10)
+
+    def test_backup_download_completion_never_emails_or_leaves_stale_active_job(self):
+        controller = agent.Agent.__new__(agent.Agent)
+        controller.process = type("Done",(),{"poll":lambda self:0,"returncode":0})()
+        controller.running_job={"id":"a"*16,"op":"bfetch"}
+        controller.s=dict(agent.BASE,active_backup=None)
+        controller.mail_task=None
+        controller.backup_notice=Mock()
+        with patch.object(agent,"STATE",self.root), patch.object(agent,"STORE",self.root/"panel.json"):
+            controller.poll()
+        controller.backup_notice.assert_not_called()
+        self.assertIsNone(controller.s["active_backup"])
+        self.assertEqual(controller.s["phase"],"concluída")
+
+    def test_remote_download_preflights_materialization_and_archive_space_together(self):
+        d=self.fixture()
+        row={"time":1,"size":100*1024**2,"version":"12.0.1","destination":"nas","storage":self.spec}
+        common.write(d/"resumo.json",row)
+        with patch.object(vault.shutil,"disk_usage",return_value=SimpleNamespace(free=150*1024**2)), \
+             patch.object(vault,"materialize") as materialize:
+            with self.assertRaisesRegex(ValueError,"remoto"):
+                vault.stream_export(d,None)
+            materialize.assert_not_called()
+
+    def test_renaming_destination_does_not_break_existing_backup(self):
+        d=self.fixture()
+        common.write(d/"resumo.json",{**common.read(d/"resumo.json"),"destination":"nas","storage":self.spec})
+        common.write(self.root/"destinations.json", {"nas":{**self.spec,"label":"NAS renomeado"}})
+        self.assertEqual(vault.recorded_spec(common.read(d/"resumo.json"))["target"],self.spec["target"])
 
     def test_confidential_rclone_config(self):
         (self.root/"rclone.conf").chmod(0o644)

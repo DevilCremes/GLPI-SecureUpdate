@@ -67,6 +67,15 @@ def extract(archive, dest):
     return new
 
 
+def switch_db_archived(path, new):
+    require(not path.is_symlink() and path.is_file(), "config_db.php arquivado precisa ser arquivo regular.")
+    raw = path.read_bytes()
+    pattern = rb"""(?m)^\s*(?:public|var)\s+(?:string\s+)?\$dbdefault\s*=\s*(['"])([A-Za-z0-9_$-]+)\1\s*;"""
+    match = re.search(pattern, raw)
+    require(match is not None, "O config_db.php arquivado não contém dbdefault literal.")
+    switch_db(path, match[2].decode("ascii"), new)
+
+
 def switch_db(path, old, new):
     require(not path.is_symlink() and path.is_file(), "config_db.php precisa ser um arquivo regular.")
     require(re.fullmatch(r"[A-Za-z0-9_$-]+", old) and re.fullmatch(r"gsu_[0-9a-f]{16}", new), "Nome do banco incompatível.")
@@ -370,7 +379,7 @@ def create_job(host,plan,archive):
     roots=host.layout(info)
     source_major, _ = version_parts(info["version"])
     migrating = plan.get("scope") == "next"
-    baseline = health.inspect(host, plan["version"]) if migrating else health.inspect(host)
+    baseline = health.inspect(host, plan["version"])
     health.http_probe(host.c["status_url"])
     # Evita colisões com volumes ativos na troca por renomeação.
     for line in Path("/proc/self/mountinfo").read_text().splitlines():
@@ -584,7 +593,7 @@ def restore_security_backup(host, directory, job):
         clone="gsu_"+secrets.token_hex(8)
         cfg_new.unlink()
         run(["cp","-a","--",cfg,cfg_new])
-        switch_db(cfg_new,info["db"],clone)
+        switch_db_archived(cfg_new, clone)
         with host.client(info) as (sql,_,make_clone):
             mode=sql("SELECT value FROM glpi_configs WHERE context='core' AND name='maintenance_mode'")
             require(mode in ("0","1"),"Estado de manutenção desconhecido.")

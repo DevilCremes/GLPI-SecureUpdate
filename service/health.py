@@ -10,9 +10,10 @@ from common import STATE, require, run, version_parts, write
 def compare(before,after):
     old=before["checks"]
     new=after["checks"]
-    severity={"error":1,"critical":2}
+    severity={"warning":1,"error":2,"critical":3}
     lost=sorted(key for key in old if old[key]!="skipped" and new.get(key,"skipped")=="skipped")
-    regressions=sorted(key for key,value in new.items() if severity.get(value,0)>severity.get(old.get(key),0))
+    regressions=sorted(key for key,value in new.items() if value != "skipped"
+                       and severity.get(value,0)>severity.get(old.get(key),0))
     return regressions,lost
 
 

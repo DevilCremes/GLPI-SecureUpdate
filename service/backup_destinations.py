@@ -87,8 +87,13 @@ def remote_profile(data):
     endpoint = data["endpoint"]
     if endpoint:
         parsed = urlsplit(endpoint)
+        try:
+            port = parsed.port
+        except ValueError:
+            port = None
+            require(False, "A porta do endpoint HTTPS é inválida.")
         require(re.fullmatch(r"https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?/?", endpoint)
-                and HOST.fullmatch(parsed.hostname or "") and (parsed.port is None or parsed.port > 0),
+                and HOST.fullmatch(parsed.hostname or "") and (port is None or port > 0),
                 "Informe um endpoint HTTPS com servidor e porta opcional.")
     require(re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", data["bucket"]), "Bucket S3 inválido.")
     require(re.fullmatch(r"[a-z0-9-]{1,64}", data["region"]), "Informe a região S3.")

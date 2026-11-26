@@ -56,6 +56,20 @@ class Detection(unittest.TestCase):
                 instalar.choose(None, "--glpi", "Raiz", ["/srv/a","/srv/b"])
             self.assertEqual(instalar.choose("/srv/b","--glpi","Raiz",["/srv/a"]),"/srv/b")
 
+    def test_pool_name_alone_does_not_identify_php_for_this_site(self):
+        p = self.etc/"php/8.4/fpm/pool.d/pools.conf"
+        self.put(p, f"[{self.app.name}]\nuser = unrelated\nlisten = /run/php/other.sock\n")
+        self.assertEqual(detect.pool_candidates(self.app, self.etc), [])
+
+    def test_single_detected_choice_requires_terminal_confirmation(self):
+        with patch("sys.stdin.isatty",return_value=False):
+            with self.assertRaisesRegex(SystemExit,"--usuario-php"):
+                instalar.choose(None,"--usuario-php","Conta PHP",["www-data"])
+        with patch("sys.stdin.isatty",return_value=True), patch("builtins.input",return_value="") as ask:
+            self.assertEqual(instalar.choose(None,"--usuario-php","Conta PHP",["www-data"]),"www-data")
+            self.assertIn("www-data",ask.call_args.args[0])
+            self.assertIn("Pressione Enter para confirmar",ask.call_args.args[0])
+
     def test_only_conventional_external_roots_inferred(self):
         paths = [self.app/"config", "/var/lib/glpi/_sessions", "/etc/glpi", "/var/lib/glpi/_log"]
         self.assertEqual(detect.external_roots(self.app, paths, []), ["/etc/glpi","/var/lib/glpi"])
@@ -110,7 +124,8 @@ class Detection(unittest.TestCase):
         with patch.object(instalar,"CFG",self.base), patch.object(subprocess,"run") as run, patch.object(detect,"probe") as probe:
             data = {"states":{},"version":"10.0.28","admin":"glpi-admin"}
             probe.return_value = {"states":{"secureupdate":4}}
-            admin = instalar.registration_user(data,None,config,context)
+            with patch("sys.stdin.isatty",return_value=True), patch("builtins.input",return_value=""):
+                admin = instalar.registration_user(data,None,config,context)
             run.side_effect = [None,subprocess.CalledProcessError(1,"activate")]
             with self.assertRaises(subprocess.CalledProcessError):
                 instalar.register(config,data,context,admin)
@@ -178,7 +193,7 @@ class Detection(unittest.TestCase):
         a = argparse.Namespace(glpi=None, usuario_php=None, php=None, url_status=None, parar=None,
                                detectar=False, aceitar_unidades=True, externo=[])
         pools = detect.pool_candidates(self.app,self.etc)
-        with patch.object(detect,"installations",return_value=[self.app]), patch.object(detect,"pool_candidates",return_value=pools), patch.object(detect,"apache_account",return_value=None), patch.object(instalar,"privileged_dir"), patch.object(instalar,"verified_php",side_effect=lambda p:p), patch.object(instalar,"php_user"), patch.object(instalar,"installation_permissions"), patch.object(detect,"php_context",return_value={}), patch.object(detect,"probe",return_value=data), patch.object(detect,"loaded_units",return_value={"php8.4-fpm.service"}), patch.object(subprocess,"check_output",return_value="loaded"), patch.object(Path,"is_dir",return_value=True):
+        with patch.object(detect,"installations",return_value=[self.app]), patch.object(detect,"pool_candidates",return_value=pools), patch.object(detect,"apache_account",return_value=None), patch.object(instalar,"privileged_dir"), patch.object(instalar,"verified_php",side_effect=lambda p:p), patch.object(instalar,"php_user"), patch.object(instalar,"installation_permissions"), patch.object(detect,"php_context",return_value={}), patch.object(detect,"probe",return_value=data), patch.object(detect,"loaded_units",return_value={"php8.4-fpm.service"}), patch.object(subprocess,"check_output",return_value="loaded"), patch.object(Path,"is_dir",return_value=True), patch("sys.stdin.isatty",return_value=True), patch("builtins.input",side_effect=["","","",""]):
             config, _, _ = instalar.read_settings(a)
         self.assertEqual(config, {"app":str(self.app),"web_user":"tickets-web","php":"/usr/bin/php8.4",
                                   "status_url":"https://tickets.example/glpi/status.php",

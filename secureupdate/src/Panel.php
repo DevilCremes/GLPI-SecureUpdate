@@ -28,7 +28,7 @@ final class Panel {
             $r = json_decode($data, true, 32, JSON_THROW_ON_ERROR);
             if (empty($r['ok'])) { throw new \RuntimeException($r['error'] ?? 'Falha na operação.'); }
             if ($upload !== null) {
-                stream_set_timeout($fp, 90);
+                stream_set_timeout($fp, 900);
                 $sent = stream_copy_to_stream($upload, $fp, $request['size']);
                 if ($sent !== $request['size'] || !stream_socket_shutdown($fp, STREAM_SHUT_WR)) {
                     throw new \RuntimeException('Transferência interrompida. Consulte o estado da verificação.');
@@ -49,7 +49,7 @@ final class Panel {
         if ($body instanceof \Closure) { $body(); } else { echo $body; }
         return null;
     }
-    public static function backupDownload(string $id, int $actor) {
+    public static function backupDownload(string $id, int $actor, string $typed) {
         if (!preg_match('/^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{16}$/D', $id)) {
             throw new \RuntimeException('Identificador inválido.');
         }
@@ -57,12 +57,13 @@ final class Panel {
         if (!$fp) { throw new \RuntimeException('Serviço de backups indisponível.'); }
         try {
             stream_set_timeout($fp, 900);
-            $request = json_encode(['op'=>'bfetch','actor'=>$actor,'ref'=>$id], JSON_THROW_ON_ERROR)."\n";
+            $request = json_encode(['op'=>'bfetch','actor'=>$actor,'ref'=>$id,'typed'=>$typed,'confirm'=>true], JSON_THROW_ON_ERROR)."\n";
             if (fwrite($fp,$request) !== strlen($request)) { throw new \RuntimeException('Envio incompleto.'); }
             $header = json_decode(fgets($fp,4096) ?: '{}', true, 8, JSON_THROW_ON_ERROR);
             if (empty($header['ok']) || !is_int($header['size'] ?? null) || $header['size'] <= 0) {
-                throw new \RuntimeException('Download indisponível. Consulte o trabalho no servidor.');
+                throw new \RuntimeException($header['error'] ?? 'Download indisponível. Consulte o trabalho no servidor.');
             }
+            if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
             return self::response(static function () use ($fp) {
                 try { fpassthru($fp); } finally { fclose($fp); }
             }, 200, ['Content-Type'=>'application/x-tar','Cache-Control'=>'private, no-store',

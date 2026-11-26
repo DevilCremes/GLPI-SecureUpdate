@@ -63,6 +63,7 @@ class Agent:
         queue=list(self.s.get("backup_queue",[]))
         if backup_mail.accepts(self.s["backup_email"],level) and not any(e["id"]==job for e in queue):
             queue.append(backup_mail.event(job,op,level,message,time.time()))
+            changes.setdefault("backup_mail_failed", False)
         self.save(backup_result={"job":job,"message":message},backup_queue=queue,**changes)
 
     def checkpoint_notice(self,job):
@@ -85,11 +86,19 @@ class Agent:
                     continue
                 if result=="ok":
                     queue.pop(index)
+                    self.save(backup_queue=queue, backup_mail_failed=False)
+                elif result=="terminal" or item.get("attempts",0)+1>=5:
+                    queue.pop(index)
+                    message=("Nenhum Super-Admin ativo com e-mail foi encontrado. Confira os destinatários."
+                             if result=="terminal" else "O aviso de backup falhou após cinco tentativas. Confira o transporte de e-mail.")
+                    self.save(backup_queue=queue, backup_mail_failed=True,
+                              backup_result={"job":item["id"],"message":message})
                 else:
                     queue[index]={**item,"acked":sorted(set(item["acked"])|set(acked)),
+                                  "attempts":item.get("attempts",0)+(0 if result=="busy" else 1),
                                   "due":now+(15 if result=="busy" else 900),
                                   "failed":bool(item.get("failed") or result=="error")}
-                self.save(backup_queue=queue)
+                    self.save(backup_queue=queue, backup_mail_failed=bool(item.get("failed") or result=="error"))
                 break
             self.mail_id=None
             return
@@ -110,7 +119,7 @@ class Agent:
         self.running_job=None
         if j["op"] in ("apply","rollback"):
             self.checkpoint_notice(j["id"])
-        if j["op"] in BACKUP_OPS:
+        if j["op"] in BACKUP_OPS and j["op"] != "bfetch":
             labels={"backup":"Backup criado e verificado.","bsave":"Política de backup salva.",
                     "bregister":"Destino testado e cadastrado. Selecione-o na política de backup.",
                     "btest":"O destino confirmou a gravação, a leitura e a exclusão de teste.",
@@ -135,13 +144,13 @@ class Agent:
                 return
             last=read(STATE/"outcome.json",{})
             rolled=j["op"]=="apply" and last.get("result")=="revertida" and last.get("job")==j["id"]
-            self.save(phase="revertida" if rolled else "falha",error="Atualização revertida. Consulte o diagnóstico." if rolled else "A operação falhou. Consulte o log deste trabalho no servidor.")
+            self.save(phase="revertida" if rolled else "falha",error="Atualização revertida. Consulte o diagnóstico." if rolled else "A operação falhou. Consulte o log deste trabalho no servidor.",active_backup=None)
             return
         if j["op"]=="check":
             self.save(phase="disponível",plan=read(STATE/"catalog.json"),error=read(STATE/"mail.json",{}).get("error",""))
         elif j["op"] in BACKUP_OPS:
             reset={"plan":{},"prepared":{}} if j["op"]=="brestore" else {}
-            self.save(phase="concluída",error="",**reset)
+            self.save(phase="concluída",error="",active_backup=None,**reset)
         elif j["op"] in ("download","upload"):
             receipt=read(STATE/"verified.json",{})
             if receipt.get("id")!=j["id"]:
@@ -195,7 +204,8 @@ class Agent:
             if op == "check" and request["scope"] != plan.get("scope", "same"):
                 plan, prepared = {}, {}
             self.save(plan=plan,next=due,job=job,phase=phases.get(op,"gerenciando backups"),error="",actor=actor,prepared=prepared,
-                      active_backup={"id":job,"op":topic} if op in BACKUP_OPS else None)
+                      active_backup={"id":job,"op":topic} if op in BACKUP_OPS and op!="bfetch" else None)
+            prune_job_logs(STATE)
             with contextlib.ExitStack() as stack:
                 log = stack.enter_context((STATE/("job-"+job+".log")).open("xb"))
                 child_input = channel if op in ("upload","bfetch") else subprocess.DEVNULL
@@ -209,10 +219,21 @@ class Agent:
             self.running_job=request
         except OSError:
             ticket.unlink(missing_ok=True)
-            if op in BACKUP_OPS:
+            if op in BACKUP_OPS and op!="bfetch":
                 self.backup_notice(job,topic,"error","Não foi possível iniciar a operação de backup.",active_backup=None)
             self.save(phase="falha",error="Não foi possível iniciar o trabalho.")
             raise
+
+    def audit_backup_download(self, reference, actor):
+        path = STATE / "backup-download-audit.json"
+        rows = read(path, [])
+        require(isinstance(rows, list), "O registro de auditoria está inválido.")
+        now = int(time.time())
+        recent = [row for row in rows[-100:] if isinstance(row,dict) and row.get("actor")==actor
+                  and type(row.get("time")) is int and 0<=now-row["time"]<60]
+        require(not recent, "Aguarde um minuto antes de baixar outro backup.")
+        rows.append({"actor":actor,"time":now,"backup":reference})
+        write(path, rows[-1000:])
 
     def dispatch(self,req,channel=None):
         require(isinstance(req,dict),"Mensagem inválida.")
@@ -220,7 +241,8 @@ class Agent:
         fields={"activity":set(),"backups":set(),"backup":{"actor","confirm"},"debug":set(),"notice":set(),"status":set(),"check":{"actor"},"settings":{"actor","hours","browser","email"},
                 "download":{"actor","ref"},"upload":{"actor","ref","size"},"apply":{"actor","ref"},"rollback":{"actor","ref"}}
         fields.update(bregister={"actor","options","confirm"},bsave={"actor","options","confirm"},btest={"actor","ref"},bdelete={"actor","ref","confirm"},
-                      brestore={"actor","ref","confirm"},bfetch={"actor","ref"},bprune={"actor","ref","confirm"},bretry={"actor","ref"})
+                      bfetch={"actor","ref","typed","confirm"},
+                      brestore={"actor","ref","confirm"},bprune={"actor","ref","confirm"},bretry={"actor","ref"})
         if op=="check" and "scope" in req:
             fields[op] = {"actor","scope"}
         if op=="backups" and "offset" in req:
@@ -248,7 +270,7 @@ class Agent:
             public={k:v for k,v in self.s.items() if k not in ("backup_queue","active_backup")}
             if self.mail_task is not None:
                 public["mail_busy"]=True
-            return {**public,"backup_mail_pending":len(queue),"backup_mail_failed":any(e.get("failed") for e in queue),"prepared":self.s.get("prepared",{}) if packages.matches(self.s.get("prepared",{}),self.s["plan"]) else {},"step":j.get("phase",""),"pending":bool(j),"restore":last.get("clone","") if last.get("result")=="aplicada" else "",
+            return {**public,"backup_mail_pending":len(queue),"backup_mail_failed":bool(self.s.get("backup_mail_failed")) or any(e.get("failed") for e in queue),"prepared":self.s.get("prepared",{}) if packages.matches(self.s.get("prepared",{}),self.s["plan"]) else {},"step":j.get("phase",""),"pending":bool(j),"restore":last.get("clone","") if last.get("result")=="aplicada" else "",
                     "health":read(STATE/"health.json",{}),"backup_time":last.get("time",0),"last_result":last.get("result","")}
         require(type(req.get("actor")) is int and req["actor"]>0,"Sessão administrativa necessária.")
         if op=="check":
@@ -265,7 +287,9 @@ class Agent:
             if op in ("bfetch","bdelete","brestore","bretry"):
                 require(isinstance(ref,str) and vault.KEY.fullmatch(ref),"Identificador de backup inválido.")
             if op=="bfetch":
+                require(req.get("confirm") is True and req.get("typed")==ref,"Confirme o identificador completo para baixar esta cópia.")
                 require(channel is not None,"Fluxo indisponível.")
+                self.audit_backup_download(ref, req["actor"])
             self.start(op,req["actor"],ref,channel=channel,options=req.get("options"))
         elif op=="settings":
             require(all(type(req[k]) is bool for k in ("browser","email")), "Canais de notificação inválidos.")
@@ -302,7 +326,12 @@ class Agent:
             self.backup_notice(secrets.token_hex(8),"missed","warning",
                                "A janela de manutenção expirou. O backup agendado não foi iniciado.")
             return False
-        self.start("backup",policy["actor"],scheduled=True)
+        try:
+            self.start("backup",policy["actor"],scheduled=True)
+        except Exception:
+            self.backup_notice(secrets.token_hex(8),"missed","error",
+                               "O backup agendado não foi iniciado. Consulte o executor e o próximo horário.")
+            return False
         return True
 
     def loop(self):
@@ -342,6 +371,17 @@ class Agent:
                         reply={"ok":False,"error":str(e)[:300]}
                     with contextlib.suppress(OSError):
                         conn.sendall((json.dumps(reply,ensure_ascii=False)+"\n").encode())
+
+
+def prune_job_logs(directory, keep=200):
+    files = sorted((path for path in directory.glob("job-????????????????.log")
+                    if path.is_file() and not path.is_symlink()),
+                   key=lambda path: path.stat().st_mtime, reverse=True)
+    for path in files[max(0, keep-1):]:
+        try:
+            path.unlink()
+        except OSError:
+            continue
 
 
 def consume_request(directory,job_id):

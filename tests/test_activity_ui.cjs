@@ -21,7 +21,7 @@ function fixture(replies, initiallyBusy = true) {
     const next = {dataset:{tab:'backups',busy:'0',job:'j'}};
     const current = {dataset:{tab:'backups'},replaceWith(node){ assert.equal(node, next); this.replaced = true; }};
     const document = Object.assign(element(), {
-        querySelectorAll:s=>s === '.gu-monitor' ? [monitor] : [], querySelector:()=>current,
+        querySelectorAll:s=>s === '.gu-monitor' ? [monitor] : [], querySelector:s=>s === '.gu-monitor .gu-request-feedback' ? parts['.gu-request-feedback'] : current,
         createElement:element, createTextNode:text=>text, importNode:node=>node
     });
     const pending = new Map();
@@ -59,23 +59,42 @@ function fixture(replies, initiallyBusy = true) {
 }
 
 const running = {busy:true, job:'j', title:'Recebendo o pacote', events:[[1,'Recebendo o pacote']], transfer:[25,100]};
-const done = {...running, busy:false, title:'Operação concluída', transfer:null};
+const done = {...running, busy:false, title:'Operação concluída', transfer:null, hold:false, attention:false};
 
 test('polls while collapsed, measures bytes and recovers after the web service returns', async () => {
-    const f = fixture([running, new Error('offline'), done, {fragment:true}]);
+    const f = fixture([running, running, new Error('offline'), done, {fragment:true}]);
     await f.flush();
     assert.equal(f.parts.details.open, false);
+    f.parts.ol.scrollHeight = 180;
+    f.parts.details.open = true;
+    f.parts.details.events.toggle();
+    assert.equal(f.parts.ol.scrollTop, 180);
+    f.parts.details.open = false;
     assert.equal(f.parts.progress.value,25);
     assert.equal(f.parts['.gu-meter-text'].textContent,'25% do pacote');
+    const firstRow = f.parts.ol.children[0];
+    await f.tick();
+    assert.equal(f.parts.ol.children[0],firstRow);
+    assert.equal(f.parts['.gu-connection'].hidden,true);
     await f.tick();
     assert.equal(f.parts['.gu-connection'].hidden,false);
     await f.tick();
     assert.equal(f.parts.strong.textContent,done.title);
-    assert.equal(f.parts.ol.children.length,2);
+    assert.equal(f.parts.ol.children.length,1);
     assert.equal(f.parts.details.open,false);
     assert.equal(f.current.replaced,true);
+    assert.equal(f.monitor.hidden,true);
     assert.equal(f.pending.size,0);
     assert.match(f.requests.at(-1), /aba=backups&conteudo=1/);
+});
+
+test('reports when another form submits during an active operation', async () => {
+    const f = fixture([running]);
+    await f.flush();
+    f.document.events.submit({target:{method:'post',op:'btest',closest:()=>f.current}, preventDefault(){}});
+    assert.equal(f.parts['.gu-request-feedback'].hidden,false);
+    assert.match(f.parts['.gu-request-feedback'].textContent,/Já há uma operação/);
+    assert.equal(f.xhr(),undefined);
 });
 
 test('shows upload progress before the executor replies and follows with read-only polling', async () => {

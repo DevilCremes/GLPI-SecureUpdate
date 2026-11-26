@@ -154,6 +154,33 @@ class BackupMailTests(unittest.TestCase):
         self.control.mail_tick(1)
         self.assertEqual(self.control.s["backup_queue"],[])
 
+    def test_permanent_failure_and_retry_limit_clear_poisoned_queue(self):
+        self.preferences("all")
+        self.finish()
+        for attempt in range(5):
+            task=Future()
+            task.set_result(("error",[]))
+            self.control.mail_task=task
+            self.control.mail_id=self.job
+            self.control.mail_tick(1000+attempt*900)
+        self.assertEqual(self.control.s["backup_queue"],[])
+        self.assertTrue(self.control.s["backup_mail_failed"])
+        self.assertIn("cinco tentativas",self.control.s["backup_result"]["message"])
+        self.assertTrue(self.control.dispatch({"op":"status"})["backup_mail_failed"])
+
+    def test_missing_recipients_is_a_terminal_delivery_error(self):
+        self.preferences("all")
+        self.finish()
+        task=Future()
+        task.set_result(("terminal",[]))
+        self.control.mail_task=task
+        self.control.mail_id=self.job
+        self.control.mail_tick(1000)
+        self.assertEqual(self.control.s["backup_queue"],[])
+        self.assertTrue(self.control.s["backup_mail_failed"])
+        self.assertIn("Super-Admin",self.control.s["backup_result"]["message"])
+        self.assertTrue(self.control.dispatch({"op":"status"})["backup_mail_failed"])
+
     def test_console_protocol_and_transport_failure(self):
         (self.root/"bin").mkdir()
         cli=self.root/"bin/console"
@@ -173,6 +200,8 @@ print('SU_DONE')
         with patch.object(backup_mail,"Host",return_value=host):
             self.assertEqual(backup_mail.deliver(self.conf,self.root,event),("error",[7]))
             self.assertEqual(backup_mail.deliver(self.conf,self.root,{**event,"acked":[7]}),("ok",[8]))
+            cli.write_text("import sys\nprint('SU_TERMINAL no_recipients'); sys.exit(2)")
+            self.assertEqual(backup_mail.deliver(self.conf,self.root,event),("terminal",[]))
             cli.write_text("print('GLPI indisponível')")
             self.assertEqual(backup_mail.deliver(self.conf,self.root,event),("error",[]))
             with (self.root/"operation.lock").open("a") as lock:

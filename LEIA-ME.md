@@ -1,4 +1,4 @@
-# Atualizações do GLPI 1.3.0
+# Atualizações do GLPI 1.4.0
 
 Plugin em português para instalações Linux pelo pacote oficial .tgz dos ramos GLPI 10.0.x, 11.0.x e 12.0.x em um único servidor com systemd e uma conexão primária MySQL ou MariaDB. O Super-Admin revisa a versão, o changelog e a urgência antes de aprovar a instalação. O serviço consulta versões diariamente por padrão. Na aba Notificações, o modo Simples permite escolher de 1 a 168 horas. O modo Avançado usa o horário e o fuso escolhidos para consultar diariamente, em um dia da semana, no primeiro ou último dia de cada mês ou em um dia do mês de 1 a 31. O painel e o e-mail podem ser habilitados de forma independente.
 
@@ -96,6 +96,18 @@ O instalador do pacote faz a instalação inicial e recusa sobrescrever uma inst
 1. Abra o painel e confirme que o executor está ocioso e que não há transação pendente. Reserve uma janela sem agendamentos e sem outras aprovações. Desative o SecureUpdate no GLPI e pare a unidade glpi-secureupdate. Mantenha o GLPI Health Check instalado.
 2. Guarde as versões atuais das duas pastas de código em um diretório privado fora da árvore web. Prepare a nova pasta `secureupdate/` para o caminho `<GLPI>/plugins/secureupdate/` e `service/` para `/usr/local/lib/glpi-secureupdate/`. Use arquivos de código de propriedade de root, diretórios 0755 e arquivos 0644. Troque as duas pastas na mesma janela. Preserve integralmente `/etc/glpi-secureupdate/`, `/var/lib/glpi-secureupdate/` e a configuração existente da unidade.
 3. Inicie a unidade, conclua a atualização do plugin em **Configurar > Plugins** se o GLPI solicitar e reative-o. Confira a versão do executor em **Debug**, abra o catálogo de Backups e teste o destino. Em caso de falha durante essa troca de código, pare o serviço, reponha as duas pastas de código guardadas e reinicie-o antes de retomar os agendamentos.
+
+## Acompanhamento das operações
+
+Nas abas **Atualização** e **Backups**, o painel consulta o executor automaticamente. A barra mostra o percentual do pacote enviado pelo navegador. Nas etapas de validação, manutenção, migração e diagnóstico, ela indica atividade. O **Console da operação** registra as etapas e pode ser recolhido. A preferência de recolher é mantida neste navegador.
+
+Se o Apache ou o GLPI ficar indisponível durante a manutenção, a página tenta se reconectar. Quando o serviço web retorna, ela carrega o resultado do executor sem repetir a operação. O log técnico completo segue disponível em `/var/lib/glpi-secureupdate/job-<id>.log` e `journalctl -u glpi-secureupdate.service`.
+
+O envio pelo servidor continua sendo um trabalho do executor. Ao enviar o arquivo do computador, a barra acompanha a transferência do navegador e passa a mostrar a etapa de verificação depois que o arquivo chega ao painel.
+
+## Baixar uma cópia completa
+
+Uma cópia contém dados do banco, anexos e arquivos de configuração. Para baixar pelo painel, abra o item no catálogo, escolha **Baixar arquivo TAR**, digite o identificador completo e confirme. O executor registra usuário, horário e identificador e limita cada Super-Admin a um download por minuto. Esses downloads não geram e-mail de resultado de backup.
 
 ## E-mail sobre o resultado dos backups
 

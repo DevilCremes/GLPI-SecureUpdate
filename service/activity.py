@@ -67,6 +67,7 @@ def snapshot(directory, panel, journal, mailing):
         data = {}
     events = data.get("events", [])
     active = phase in ACTIVE or bool(journal)
+    hold = phase == "disponível" and panel.get("prepared", {}).get("id") == job and bool(job)
     busy = active or mailing
     if active:
         title = STEPS.get(journal.get("phase")) or (events[-1][1] if events else "Aguardando o executor")
@@ -78,5 +79,5 @@ def snapshot(directory, panel, journal, mailing):
         title = "Pacote verificado. Aguardando aprovação"
     else:
         title = END.get(phase, "Operação concluída")
-    return {"job": job, "busy": busy, "title": title, "events": events,
+    return {"job": job, "busy": busy, "hold": hold, "title": title, "events": events,
             "transfer": data.get("transfer") if active else None, "attention": phase in END}
