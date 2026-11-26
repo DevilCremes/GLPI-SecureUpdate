@@ -6,7 +6,7 @@ Plugin para GLPI 10.0.x, 11.0.x e 12.0.x em Linux que reúne atualizações apro
 Para a **primeira instalação** do SecureUpdate, execute o bloco abaixo no servidor do GLPI. Ele baixa o pacote deste repositório para uma pasta privada no seu diretório pessoal e inicia o instalador automático. São necessários `curl`, `tar`, `python3` e acesso a `sudo`.
 
 ```bash
-revisao=4d5aa2950771b7b03e1641287799c2ffeccfb089
+revisao=a01357a1cb34c7d11bf041fd43ef24434df22577
 pasta=$(mktemp -d "$HOME/glpi-secureupdate.XXXXXX") &&
 cd "$pasta" &&
 curl --fail --show-error --location \
@@ -24,7 +24,7 @@ Para **apenas conferir a detecção**, substitua a última linha do bloco por `s
 
 O SecureUpdate é um plugin em português para administrar atualizações e backups do **GLPI 10.0.x, 11.0.x e 12.0.x em Linux**. No próprio GLPI, o Super-Admin pode consultar o que mudou em uma versão, verificar o pacote oficial e aprovar a instalação. A consulta por novas versões pode ser agendada. **Toda atualização exige aprovação explícita.**
 
-Na versão 1.1.0, a aba **Atualização** permite escolher a manutenção no ramo instalado ou uma migração para o próximo ramo (10 → 11 ou 11 → 12). As consultas agendadas continuam no ramo instalado. A passagem de 10 para 12 exige duas operações, cada uma com pacote verificado, aprovação, backup e diagnóstico próprios.
+Na versão 1.4.0, a aba **Atualização** permite escolher a manutenção no ramo instalado ou uma migração para o próximo ramo (10 → 11 ou 11 → 12). As consultas agendadas continuam no ramo instalado. A passagem de 10 para 12 exige duas operações, cada uma com pacote verificado, aprovação, backup e diagnóstico próprios.
 
 
 [Baixar a prévia interativa do painel](https://raw.githubusercontent.com/DevilCremes/GLPI-SecureUpdate/main/docs/previa-secureupdate.html)
@@ -39,7 +39,7 @@ O **SecureUpdate** compara esses resultados antes e depois da migração. També
 
 ## Interface
 
-A versão 1.0.8 adota o Console operacional nas cinco abas. Escolha uma aba no menu lateral e uma seção no índice para consultar seus detalhes. A aba Backups abre no catálogo. Em telas pequenas, os menus se reorganizam acima do conteúdo.
+O painel usa a navegação em abas e cartões do tema do GLPI. Nas abas **Atualização** e **Backups**, a barra acompanha o envio de pacotes e o console recolhível registra as etapas. O resultado aparece automaticamente quando o executor termina, inclusive após a retomada do Apache. Em telas pequenas, as abas podem ser roladas.
 
 ## Como funciona uma atualização
 
@@ -61,7 +61,7 @@ Se a migração ou o diagnóstico falhar antes da reabertura, o executor tenta r
 
 Os avisos de **novas versões** podem aparecer no painel durante o uso do GLPI ou chegar por e-mail. A consulta aceita um intervalo simples em horas ou uma regra de calendário.
 
-Os **e-mails de backup** têm configuração própria. O Super-Admin pode desativá-los, receber somente erros e avisos ou receber todos os resultados. A mensagem identifica a operação e informa, por exemplo, se a cópia local foi criada, mas o envio ao NAS ficou pendente. Uma falha de e-mail mantém o aviso na fila para nova tentativa.
+Os **e-mails de backup** têm configuração própria. O Super-Admin pode desativá-los, receber somente erros e avisos ou receber todos os resultados. A mensagem identifica a operação e informa, por exemplo, se a cópia local foi criada, mas o envio ao NAS ficou pendente. Falhas temporárias são retentadas até cinco vezes. Sem destinatários ativos, o erro é sinalizado e removido da fila.
 
 A aba **Saúde** apresenta os resultados do diagnóstico e as regressões detectadas. A aba **Debug** mostra a etapa em andamento e o identificador que permite localizar o log no servidor. O resumo pode ser exportado em JSON sem incluir credenciais ou conteúdo dos chamados.
 
@@ -73,7 +73,7 @@ O guia do pacote detalha as dependências, as permissões do banco, a configura�
 
 ## Validação
 
-Na versão **1.0.8**, passaram **107 testes automatizados**. A suíte cobre aprovação, integridade dos arquivos, restauração, rollback, retenção e novas tentativas de envio de e-mail. Os testes usam arquivos locais e simulam serviços externos. A homologação de ponta a ponta com o GLPI, o banco, o destino remoto e o SMTP da instalação continua necessária.
+Na versão **1.4.0**, passaram **167 testes Python e 3 testes JavaScript**. A suíte cobre aprovação, integridade dos arquivos, restauração entre bancos renomeados, compatibilidade de plugins, downloads auditados, execução de tarefas, barra de progresso e tentativas limitadas de e-mail. Os testes usam arquivos locais e simulam serviços externos. A homologação de ponta a ponta com o GLPI, o banco, o destino remoto e o SMTP da instalação continua necessária.
 
 ## Licença
 
